@@ -6,12 +6,47 @@ export const useReplies = (postId?: string, complaintId?: string) => {
   return useQuery({
     queryKey: ["replies", postId, complaintId],
     queryFn: async () => {
-      let query = supabase.from("replies").select(`id, content, created_at, user_id, is_official, profiles:profiles!replies_user_id_fkey(username, display_name, avatar_url)`).order("created_at", { ascending: true });
+      // First get all replies with parent relationship
+      let query = supabase
+        .from("replies")
+        .select(`
+          id, 
+          content, 
+          created_at, 
+          user_id, 
+          is_official, 
+          parent_reply_id,
+          profiles:profiles!replies_user_id_fkey(username, display_name, avatar_url)
+        `)
+        .order("created_at", { ascending: true });
+      
       if (postId) query = query.eq("post_id", postId);
       else if (complaintId) query = query.eq("complaint_id", complaintId);
+      
       const { data, error } = await query;
       if (error) throw error;
-      return data as any[];
+
+      // Build nested structure
+      const repliesMap = new Map();
+      const rootReplies: any[] = [];
+
+      data?.forEach((reply: any) => {
+        repliesMap.set(reply.id, { ...reply, replies: [] });
+      });
+
+      data?.forEach((reply: any) => {
+        const replyWithChildren = repliesMap.get(reply.id);
+        if (reply.parent_reply_id) {
+          const parent = repliesMap.get(reply.parent_reply_id);
+          if (parent) {
+            parent.replies.push(replyWithChildren);
+          }
+        } else {
+          rootReplies.push(replyWithChildren);
+        }
+      });
+
+      return rootReplies;
     },
     enabled: !!postId || !!complaintId,
   });

@@ -19,8 +19,8 @@ export const usePosts = () => {
 export const useCreatePost = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ content, user_id }: { content: string; user_id: string }) => {
-      const { data, error } = await supabase.from("posts").insert({ content, user_id }).select().single();
+    mutationFn: async ({ content, user_id, image_url }: { content: string; user_id: string; image_url?: string | null }) => {
+      const { data, error } = await supabase.from("posts").insert({ content, user_id, image_url }).select().single();
       if (error) throw error;
       return data;
     },

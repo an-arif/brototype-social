@@ -12,6 +12,7 @@ interface PostCardProps {
   post: {
     id: string;
     content: string;
+    image_url?: string | null;
     created_at: string;
     user_id: string;
     profiles: {
@@ -58,6 +59,13 @@ export const PostCard = ({ post }: PostCardProps) => {
               </span>
             </div>
             <p className="text-foreground leading-relaxed">{post.content}</p>
+            {post.image_url && (
+              <img 
+                src={post.image_url} 
+                alt="Post" 
+                className="rounded-lg mt-3 max-h-[400px] w-full object-cover"
+              />
+            )}
             <div className="flex items-center gap-6 pt-2">
               <Button
                 variant="ghost"
