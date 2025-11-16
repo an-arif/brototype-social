@@ -23,9 +23,9 @@ export default function PostDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("posts")
-        .select(`id, content, created_at, user_id, profiles!inner(username, display_name, avatar_url)`)
+        .select(`id, content, created_at, user_id, profiles:profiles!posts_user_id_fkey(username, display_name, avatar_url)`)
         .eq("id", id)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data as any;
     },

@@ -6,7 +6,7 @@ export const useReplies = (postId?: string, complaintId?: string) => {
   return useQuery({
     queryKey: ["replies", postId, complaintId],
     queryFn: async () => {
-      let query = supabase.from("replies").select(`id, content, created_at, user_id, is_official, profiles!inner(username, display_name, avatar_url)`).order("created_at", { ascending: true });
+      let query = supabase.from("replies").select(`id, content, created_at, user_id, is_official, profiles:profiles!replies_user_id_fkey(username, display_name, avatar_url)`).order("created_at", { ascending: true });
       if (postId) query = query.eq("post_id", postId);
       else if (complaintId) query = query.eq("complaint_id", complaintId);
       const { data, error } = await query;
