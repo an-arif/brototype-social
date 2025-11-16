@@ -192,6 +192,7 @@ export type Database = {
           created_at: string
           id: string
           post_id: string | null
+          reply_id: string | null
           user_id: string
         }
         Insert: {
@@ -199,6 +200,7 @@ export type Database = {
           created_at?: string
           id?: string
           post_id?: string | null
+          reply_id?: string | null
           user_id: string
         }
         Update: {
@@ -206,6 +208,7 @@ export type Database = {
           created_at?: string
           id?: string
           post_id?: string | null
+          reply_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -221,6 +224,13 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "likes_reply_id_fkey"
+            columns: ["reply_id"]
+            isOneToOne: false
+            referencedRelation: "replies"
             referencedColumns: ["id"]
           },
         ]

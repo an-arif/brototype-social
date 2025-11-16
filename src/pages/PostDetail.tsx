@@ -12,6 +12,7 @@ import { useToggleLike, useLikes } from "@/hooks/usePosts";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Heart, Loader2, Send } from "lucide-react";
+import { ReplyItem } from "@/components/ReplyItem";
 
 export default function PostDetail() {
   const { id } = useParams();
@@ -23,7 +24,7 @@ export default function PostDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("posts")
-        .select(`id, content, created_at, user_id, profiles:profiles!posts_user_id_fkey(username, display_name, avatar_url)`)
+        .select(`id, content, created_at, user_id, image_url, profiles:profiles!posts_user_id_fkey(username, display_name, avatar_url)`)
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -94,6 +95,13 @@ export default function PostDetail() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-foreground text-lg leading-relaxed whitespace-pre-wrap">{post.content}</p>
+            {post.image_url && (
+              <img 
+                src={post.image_url} 
+                alt="Post" 
+                className="rounded-lg max-h-[500px] w-full object-cover"
+              />
+            )}
             <div className="flex items-center gap-4 pt-4 border-t border-border">
               <Button variant="ghost" size="sm" className="gap-2 hover:text-primary" onClick={handleLike}>
                 <Heart className={`h-5 w-5 ${isLiked ? "fill-primary text-primary" : ""}`} />
@@ -123,25 +131,9 @@ export default function PostDetail() {
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : replies && replies.length > 0 ? (
-              <div className="space-y-4 pt-4">
+              <div className="space-y-6 pt-4">
                 {replies.map((reply: any) => (
-                  <div key={reply.id} className="p-4 rounded-lg bg-background/30">
-                    <div className="flex items-start gap-3">
-                      <Avatar className="h-10 w-10 border-2 border-border">
-                        <AvatarImage src={reply.profiles?.avatar_url || ""} />
-                        <AvatarFallback>{reply.profiles?.display_name?.[0] || "U"}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold">{reply.profiles?.display_name}</span>
-                          <span className="text-muted-foreground text-sm">
-                            {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
-                          </span>
-                        </div>
-                        <p className="text-foreground leading-relaxed">{reply.content}</p>
-                      </div>
-                    </div>
-                  </div>
+                  <ReplyItem key={reply.id} reply={reply} postId={id} />
                 ))}
               </div>
             ) : (

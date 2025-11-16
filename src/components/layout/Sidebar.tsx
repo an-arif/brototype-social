@@ -26,6 +26,8 @@ export function Sidebar() {
     { icon: Shield, label: "Admin Panel", path: "/admin" },
   ] : [];
 
+  console.log("User role check:", { userId: user?.id, userRole, isAdmin });
+
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 glass-card border-r border-border/50 flex flex-col">
       <div className="p-6 border-b border-border/50">

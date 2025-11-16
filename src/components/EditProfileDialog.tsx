@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Upload } from "lucide-react";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface EditProfileDialogProps {
   open: boolean;
@@ -17,6 +19,7 @@ interface EditProfileDialogProps {
 export function EditProfileDialog({ open, onOpenChange, userId }: EditProfileDialogProps) {
   const { data: profile } = useProfile(userId);
   const updateProfile = useUpdateProfile();
+  const [uploading, setUploading] = useState(false);
   
   const [formData, setFormData] = useState({
     display_name: "",
@@ -35,6 +38,39 @@ export function EditProfileDialog({ open, onOpenChange, userId }: EditProfileDia
       });
     }
   }, [profile]);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${userId}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+      
+      setFormData({ ...formData, avatar_url: publicUrl });
+      toast.success("Avatar uploaded successfully!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to upload avatar");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,14 +93,29 @@ export function EditProfileDialog({ open, onOpenChange, userId }: EditProfileDia
               </AvatarFallback>
             </Avatar>
             <div className="w-full space-y-2">
-              <Label htmlFor="avatar_url">Profile Image URL</Label>
-              <Input
-                id="avatar_url"
-                placeholder="https://example.com/image.jpg"
-                value={formData.avatar_url}
-                onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
-                className="bg-background/50"
+              <input
+                type="file"
+                id="avatar-upload"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
               />
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-2"
+                disabled={uploading}
+                asChild
+              >
+                <label htmlFor="avatar-upload" className="cursor-pointer">
+                  {uploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  {uploading ? "Uploading..." : "Upload Avatar"}
+                </label>
+              </Button>
             </div>
           </div>
 
