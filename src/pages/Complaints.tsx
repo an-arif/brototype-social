@@ -23,6 +23,7 @@ export default function Complaints() {
     severity: "medium",
     category: "other",
   });
+  const [attachmentsText, setAttachmentsText] = useState("");
 
   const { data: publicComplaints, isLoading: loadingPublic } = useComplaints("public");
   const { data: privateComplaints, isLoading: loadingPrivate } = useComplaints("private", user?.id);
@@ -32,13 +33,20 @@ export default function Complaints() {
     e.preventDefault();
     if (!complaintData.title.trim() || !complaintData.description.trim() || !user) return;
 
+    const attachments = attachmentsText
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
     await createComplaint.mutateAsync({
       ...complaintData,
       user_id: user.id,
       is_private: isPrivate,
+      attachments,
     });
 
     setComplaintData({ title: "", description: "", severity: "medium", category: "other" });
+    setAttachmentsText("");
     setIsPrivate(false);
     setIsDialogOpen(false);
   };
@@ -138,6 +146,16 @@ export default function Complaints() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="attachments">Attachments (optional)</Label>
+                  <Input
+                    id="attachments"
+                    placeholder="Paste file/image URLs, comma-separated"
+                    value={attachmentsText}
+                    onChange={(e) => setAttachmentsText(e.target.value)}
+                    className="bg-background/50"
+                  />
                 </div>
                 <div className="flex gap-3 justify-end">
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>

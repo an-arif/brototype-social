@@ -6,9 +6,19 @@ export const useComplaints = (type: "public" | "private", userId?: string) => {
   return useQuery({
     queryKey: ["complaints", type, userId],
     queryFn: async () => {
-      let query = supabase.from("complaints").select(`id, title, description, status, is_pinned, is_urgent, created_at, user_id, assigned_to, profiles!inner(username, display_name, avatar_url)`).order("created_at", { ascending: false });
-      if (type === "public") query = query.is("assigned_to", null);
-      else if (type === "private" && userId) query = query.or(`user_id.eq.${userId},assigned_to.eq.${userId}`);
+      let query = supabase
+        .from("complaints")
+        .select(
+          `id, title, description, status, is_pinned, is_urgent, is_private, severity, category, created_at, user_id, assigned_to, profiles!inner(username, display_name, avatar_url)`
+        )
+        .order("created_at", { ascending: false });
+
+      if (type === "public") {
+        query = query.eq("is_private", false);
+      } else if (type === "private") {
+        query = query.eq("is_private", true);
+        if (userId) query = query.or(`user_id.eq.${userId},assigned_to.eq.${userId}`);
+      }
       const { data, error } = await query;
       if (error) throw error;
       return data as any[];
@@ -26,6 +36,7 @@ export const useCreateComplaint = () => {
       is_private?: boolean;
       severity?: string;
       category?: string;
+      attachments?: any;
     }) => {
       const { data, error } = await supabase
         .from("complaints")
@@ -37,6 +48,7 @@ export const useCreateComplaint = () => {
           is_private: complaint.is_private || false,
           severity: complaint.severity || 'medium',
           category: complaint.category || 'other',
+          attachments: complaint.attachments ?? []
         })
         .select()
         .single();
