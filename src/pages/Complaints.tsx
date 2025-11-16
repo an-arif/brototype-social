@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Plus, Lock, Globe, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useComplaints, useCreateComplaint } from "@/hooks/useComplaints";
+import { useComplaints, useCreateComplaint, useUpvotes } from "@/hooks/useComplaints";
 import { ComplaintCard } from "@/components/ComplaintCard";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,6 +27,7 @@ export default function Complaints() {
 
   const { data: publicComplaints, isLoading: loadingPublic } = useComplaints("public");
   const { data: privateComplaints, isLoading: loadingPrivate } = useComplaints("private", user?.id);
+  const { data: allUpvotes } = useUpvotes();
   const createComplaint = useCreateComplaint();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,10 +53,14 @@ export default function Complaints() {
   };
 
   const openComplaints = publicComplaints?.filter((c) => c.status === "open") || [];
-  const trendingComplaints = [...(publicComplaints || [])].sort(
-    (a, b) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0)
-  );
   const closedComplaints = publicComplaints?.filter((c) => c.status === "closed") || [];
+  
+  // Calculate trending complaints by upvote count
+  const trendingComplaints = [...(publicComplaints || [])].sort((a, b) => {
+    const upvotesA = allUpvotes?.filter(u => u.complaint_id === a.id).length || 0;
+    const upvotesB = allUpvotes?.filter(u => u.complaint_id === b.id).length || 0;
+    return upvotesB - upvotesA;
+  });
 
   return (
     <MainLayout>

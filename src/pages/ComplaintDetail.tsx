@@ -27,9 +27,9 @@ export default function ComplaintDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("complaints")
-        .select(`id, title, description, status, is_pinned, is_urgent, created_at, user_id, profiles!inner(username, display_name, avatar_url)`)
+        .select(`id, title, description, status, is_pinned, is_urgent, created_at, user_id, profiles:profiles!complaints_user_id_fkey(username, display_name, avatar_url)`)
         .eq("id", id)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data as any;
     },
