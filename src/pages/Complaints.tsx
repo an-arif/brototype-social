@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useComplaints, useCreateComplaint } from "@/hooks/useComplaints";
 import { ComplaintCard } from "@/components/ComplaintCard";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Complaints() {
   const { user } = useAuth();
@@ -19,6 +20,8 @@ export default function Complaints() {
   const [complaintData, setComplaintData] = useState({
     title: "",
     description: "",
+    severity: "medium",
+    category: "other",
   });
 
   const { data: publicComplaints, isLoading: loadingPublic } = useComplaints("public");
@@ -35,7 +38,7 @@ export default function Complaints() {
       is_private: isPrivate,
     });
 
-    setComplaintData({ title: "", description: "" });
+    setComplaintData({ title: "", description: "", severity: "medium", category: "other" });
     setIsPrivate(false);
     setIsDialogOpen(false);
   };
@@ -98,6 +101,43 @@ export default function Complaints() {
                     className="min-h-[150px] bg-background/50 resize-none"
                     required
                   />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="severity">Problem Severity</Label>
+                    <Select
+                      value={complaintData.severity}
+                      onValueChange={(value) => setComplaintData({ ...complaintData, severity: value })}
+                    >
+                      <SelectTrigger className="bg-background/50">
+                        <SelectValue placeholder="Select severity" />
+                      </SelectTrigger>
+                      <SelectContent className="glass-card">
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="critical">Critical</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Related To</Label>
+                    <Select
+                      value={complaintData.category}
+                      onValueChange={(value) => setComplaintData({ ...complaintData, category: value })}
+                    >
+                      <SelectTrigger className="bg-background/50">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent className="glass-card">
+                        <SelectItem value="electricity">Electricity</SelectItem>
+                        <SelectItem value="network">Network</SelectItem>
+                        <SelectItem value="system">System</SelectItem>
+                        <SelectItem value="staff">Staff</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="flex gap-3 justify-end">
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>

@@ -1,13 +1,18 @@
-import { Home, AlertCircle, Calendar, User, Settings, LogOut } from "lucide-react";
+import { Home, AlertCircle, Calendar, User, Settings, LogOut, Bell } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { useNotifications } from "@/hooks/useNotifications";
+import { Badge } from "@/components/ui/badge";
 
 export function Sidebar() {
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
+  const { data: notifications } = useNotifications(user?.id);
+  const unreadCount = notifications?.filter((n) => !n.read).length || 0;
 
   const navItems = [
     { icon: Home, label: "Home", path: "/" },
+    { icon: Bell, label: "Notifications", path: "/notifications", badge: unreadCount },
     { icon: AlertCircle, label: "Complaints", path: "/complaints" },
     { icon: Calendar, label: "Events", path: "/events" },
     { icon: User, label: "Profile", path: "/profile" },
@@ -29,11 +34,14 @@ export function Sidebar() {
           <NavLink
             key={item.path}
             to={item.path}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground/70 hover:text-foreground hover:bg-accent/50 transition-all duration-200"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground/70 hover:text-foreground hover:bg-accent/50 transition-all duration-200 relative"
             activeClassName="bg-primary/10 text-primary font-medium"
           >
             <item.icon className="h-5 w-5" />
             <span>{item.label}</span>
+            {item.badge && item.badge > 0 && (
+              <Badge className="ml-auto bg-primary text-primary-foreground">{item.badge}</Badge>
+            )}
           </NavLink>
         ))}
       </nav>

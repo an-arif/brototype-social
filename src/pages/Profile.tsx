@@ -3,10 +3,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { Edit } from "lucide-react";
+import { useProfile } from "@/hooks/useProfile";
+import { EditProfileDialog } from "@/components/EditProfileDialog";
+import { Edit, Loader2 } from "lucide-react";
+import { useState } from "react";
 
 export default function Profile() {
   const { user } = useAuth();
+  const { data: profile, isLoading } = useProfile(user?.id);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -19,7 +34,7 @@ export default function Profile() {
         <Card className="glass-card">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Your Profile</CardTitle>
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setEditDialogOpen(true)}>
               <Edit className="h-4 w-4" />
               Edit Profile
             </Button>
@@ -27,14 +42,14 @@ export default function Profile() {
           <CardContent className="space-y-6">
             <div className="flex items-center gap-6">
               <Avatar className="h-24 w-24 border-2 border-primary/20">
-                <AvatarImage src="" />
+                <AvatarImage src={profile?.avatar_url || ""} />
                 <AvatarFallback className="text-2xl bg-primary/10">
-                  {user?.email?.[0].toUpperCase()}
+                  {profile?.display_name?.[0]?.toUpperCase() || user?.email?.[0].toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="space-y-1">
-                <h2 className="text-2xl font-bold">User</h2>
-                <p className="text-muted-foreground">@{user?.email?.split('@')[0]}</p>
+                <h2 className="text-2xl font-bold">{profile?.display_name || "User"}</h2>
+                <p className="text-muted-foreground">@{profile?.username || user?.email?.split('@')[0]}</p>
                 <p className="text-sm text-muted-foreground">{user?.email}</p>
               </div>
             </div>
@@ -56,11 +71,13 @@ export default function Profile() {
 
             <div className="pt-6 border-t border-border/50">
               <h3 className="font-semibold mb-2">About</h3>
-              <p className="text-muted-foreground">No bio added yet</p>
+              <p className="text-muted-foreground">{profile?.bio || "No bio added yet"}</p>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {user && <EditProfileDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} userId={user.id} />}
     </MainLayout>
   );
 }
