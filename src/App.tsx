@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Complaints from "./pages/Complaints";
 import ComplaintDetail from "./pages/ComplaintDetail";
 import PostDetail from "./pages/PostDetail";
+import Notifications from "./pages/Notifications";
 import Events from "./pages/Events";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
@@ -56,6 +57,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <PostDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <Notifications />
                 </ProtectedRoute>
               }
             />

@@ -19,8 +19,27 @@ export const useComplaints = (type: "public" | "private", userId?: string) => {
 export const useCreateComplaint = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (complaint: { title: string; description: string; user_id: string; is_private?: boolean }) => {
-      const { data, error } = await supabase.from("complaints").insert({ title: complaint.title, description: complaint.description, user_id: complaint.user_id, status: "open" }).select().single();
+    mutationFn: async (complaint: { 
+      title: string; 
+      description: string; 
+      user_id: string; 
+      is_private?: boolean;
+      severity?: string;
+      category?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from("complaints")
+        .insert({ 
+          title: complaint.title, 
+          description: complaint.description, 
+          user_id: complaint.user_id, 
+          status: "open",
+          is_private: complaint.is_private || false,
+          severity: complaint.severity || 'medium',
+          category: complaint.category || 'other',
+        })
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },

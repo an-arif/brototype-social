@@ -47,11 +47,14 @@ export type Database = {
         Row: {
           assigned_to: string | null
           attachments: Json | null
+          category: string | null
           created_at: string
           description: string
           id: string
           is_pinned: boolean
+          is_private: boolean | null
           is_urgent: boolean
+          severity: string | null
           status: string
           title: string
           updated_at: string
@@ -60,11 +63,14 @@ export type Database = {
         Insert: {
           assigned_to?: string | null
           attachments?: Json | null
+          category?: string | null
           created_at?: string
           description: string
           id?: string
           is_pinned?: boolean
+          is_private?: boolean | null
           is_urgent?: boolean
+          severity?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -73,11 +79,14 @@ export type Database = {
         Update: {
           assigned_to?: string | null
           attachments?: Json | null
+          category?: string | null
           created_at?: string
           description?: string
           id?: string
           is_pinned?: boolean
+          is_private?: boolean | null
           is_urgent?: boolean
+          severity?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -200,6 +209,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          link: string | null
+          message: string
+          read: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          link?: string | null
+          message: string
+          read?: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          link?: string | null
+          message?: string
+          read?: boolean | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       posts: {
         Row: {
