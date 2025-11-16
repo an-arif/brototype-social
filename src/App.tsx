@@ -12,6 +12,7 @@ import PostDetail from "./pages/PostDetail";
 import Notifications from "./pages/Notifications";
 import Events from "./pages/Events";
 import Profile from "./pages/Profile";
+import UserProfile from "./pages/UserProfile";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
@@ -98,6 +99,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile/:id"
+              element={
+                <ProtectedRoute>
+                  <UserProfile />
                 </ProtectedRoute>
               }
             />

@@ -5,20 +5,36 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
-import { useFollowStats, useUserPosts, useUserComplaints } from "@/hooks/useFollow";
-import { EditProfileDialog } from "@/components/EditProfileDialog";
+import { useFollowStats, useIsFollowing, useToggleFollow, useUserPosts, useUserComplaints } from "@/hooks/useFollow";
+import { Loader2, UserPlus, UserMinus, Edit } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
 import { PostCard } from "@/components/PostCard";
 import { ComplaintCard } from "@/components/ComplaintCard";
-import { Edit, Loader2 } from "lucide-react";
+import { EditProfileDialog } from "@/components/EditProfileDialog";
 import { useState } from "react";
 
-export default function Profile() {
+export default function UserProfile() {
+  const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: profile, isLoading } = useProfile(user?.id);
-  const { data: followStats } = useFollowStats(user?.id);
-  const { data: posts } = useUserPosts(user?.id);
-  const { data: complaints } = useUserComplaints(user?.id);
+  const isOwnProfile = user?.id === id;
+  
+  const { data: profile, isLoading } = useProfile(id);
+  const { data: followStats } = useFollowStats(id);
+  const { data: isFollowing } = useIsFollowing(user?.id, id);
+  const { data: posts } = useUserPosts(id);
+  const { data: complaints } = useUserComplaints(id);
+  const toggleFollow = useToggleFollow();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const handleFollow = async () => {
+    if (!user || !id) return;
+    await toggleFollow.mutateAsync({
+      followerId: user.id,
+      followingId: id,
+      isFollowing: isFollowing || false,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -30,34 +46,60 @@ export default function Profile() {
     );
   }
 
+  if (!profile) {
+    return (
+      <MainLayout>
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">User not found</p>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
       <div className="max-w-4xl mx-auto space-y-6">
-        <div className="animate-in">
-          <h1 className="text-3xl font-bold mb-2">Profile</h1>
-          <p className="text-muted-foreground">Manage your personal information</p>
-        </div>
-
         <Card className="glass-card">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Your Profile</CardTitle>
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => setEditDialogOpen(true)}>
-              <Edit className="h-4 w-4" />
-              Edit Profile
-            </Button>
+            <CardTitle>Profile</CardTitle>
+            {isOwnProfile ? (
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setEditDialogOpen(true)}>
+                <Edit className="h-4 w-4" />
+                Edit Profile
+              </Button>
+            ) : (
+              <Button
+                variant={isFollowing ? "outline" : "default"}
+                size="sm"
+                className="gap-2"
+                onClick={handleFollow}
+                disabled={toggleFollow.isPending}
+              >
+                {isFollowing ? (
+                  <>
+                    <UserMinus className="h-4 w-4" />
+                    Unfollow
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4" />
+                    Follow
+                  </>
+                )}
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center gap-6">
               <Avatar className="h-24 w-24 border-2 border-primary/20">
-                <AvatarImage src={profile?.avatar_url || ""} />
+                <AvatarImage src={profile.avatar_url || ""} />
                 <AvatarFallback className="text-2xl bg-primary/10">
-                  {profile?.display_name?.[0]?.toUpperCase() || user?.email?.[0].toUpperCase()}
+                  {profile.display_name?.[0]?.toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <div className="space-y-1">
-                <h2 className="text-2xl font-bold">{profile?.display_name || "User"}</h2>
-                <p className="text-muted-foreground">@{profile?.username || user?.email?.split('@')[0]}</p>
-                <p className="text-sm text-muted-foreground">{user?.email}</p>
+                <h2 className="text-2xl font-bold">{profile.display_name}</h2>
+                <p className="text-muted-foreground">@{profile.username}</p>
               </div>
             </div>
 
@@ -76,7 +118,7 @@ export default function Profile() {
               </div>
             </div>
 
-            {profile?.bio && (
+            {profile.bio && (
               <div className="pt-6 border-t border-border/50">
                 <h3 className="font-semibold mb-2">About</h3>
                 <p className="text-muted-foreground">{profile.bio}</p>
@@ -117,7 +159,9 @@ export default function Profile() {
         </Tabs>
       </div>
 
-      {user && <EditProfileDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} userId={user.id} />}
+      {isOwnProfile && user && (
+        <EditProfileDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} userId={user.id} />
+      )}
     </MainLayout>
   );
 }
