@@ -44,7 +44,29 @@ export const useToggleLike = () => {
         if (error) throw error;
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["posts", "likes"] }),
+    onMutate: async ({ post_id, user_id, isLiked }) => {
+      await queryClient.cancelQueries({ queryKey: ["likes", post_id] });
+      const previousLikes = queryClient.getQueryData(["likes", post_id]);
+      
+      queryClient.setQueryData(["likes", post_id], (old: any) => {
+        if (isLiked) {
+          return old?.filter((like: any) => like.user_id !== user_id) || [];
+        } else {
+          return [...(old || []), { post_id, user_id, id: "temp-" + Date.now(), created_at: new Date().toISOString() }];
+        }
+      });
+      
+      return { previousLikes };
+    },
+    onError: (err, variables, context: any) => {
+      if (context?.previousLikes) {
+        queryClient.setQueryData(["likes", variables.post_id], context.previousLikes);
+      }
+      toast.error("Failed to update like");
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["likes", variables.post_id] });
+    },
   });
 };
 
