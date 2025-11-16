@@ -8,7 +8,7 @@ export const usePosts = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("posts")
-        .select(`id, content, created_at, user_id, image_url, profiles!inner(username, display_name, avatar_url)`)
+        .select(`id, content, created_at, user_id, image_url, profiles:profiles!posts_user_id_fkey(username, display_name, avatar_url)`)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
