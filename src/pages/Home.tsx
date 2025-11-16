@@ -3,38 +3,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
-import { Image, Send } from "lucide-react";
+import { Image, Send, Loader2 } from "lucide-react";
+import { usePosts, useCreatePost } from "@/hooks/usePosts";
+import { PostCard } from "@/components/PostCard";
 
 export default function Home() {
   const { user } = useAuth();
   const [postContent, setPostContent] = useState("");
-  const [isPosting, setIsPosting] = useState(false);
+  const { data: posts, isLoading } = usePosts();
+  const createPost = useCreatePost();
 
   const handleCreatePost = async () => {
-    if (!postContent.trim()) {
-      toast.error("Please write something to post");
-      return;
-    }
-
-    setIsPosting(true);
-    try {
-      const { error } = await supabase.from("posts").insert({
-        user_id: user?.id,
-        content: postContent,
-      });
-
-      if (error) throw error;
-
-      toast.success("Post created successfully!");
-      setPostContent("");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to create post");
-    } finally {
-      setIsPosting(false);
-    }
+    if (!postContent.trim() || !user) return;
+    await createPost.mutateAsync({ content: postContent, user_id: user.id });
+    setPostContent("");
   };
 
   return (
@@ -45,7 +28,6 @@ export default function Home() {
           <p className="text-muted-foreground">What's happening in the Brototype community?</p>
         </div>
 
-        {/* Create Post Card */}
         <Card className="glass-card animate-in">
           <CardHeader>
             <CardTitle className="text-lg">Create Post</CardTitle>
@@ -62,22 +44,37 @@ export default function Home() {
                 <Image className="h-4 w-4" />
                 Add Image
               </Button>
-              <Button 
-                onClick={handleCreatePost} 
-                disabled={isPosting}
+              <Button
+                onClick={handleCreatePost}
+                disabled={createPost.isPending || !postContent.trim()}
                 className="gap-2"
               >
-                <Send className="h-4 w-4" />
-                {isPosting ? "Posting..." : "Post"}
+                {createPost.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                {createPost.isPending ? "Posting..." : "Post"}
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Feed will be populated here */}
-        <div className="text-center py-12 glass-card rounded-xl">
-          <p className="text-muted-foreground">No posts yet. Be the first to share something!</p>
-        </div>
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : posts && posts.length > 0 ? (
+          <div className="space-y-4">
+            {posts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 glass-card rounded-xl">
+            <p className="text-muted-foreground">No posts yet. Be the first to share something!</p>
+          </div>
+        )}
       </div>
     </MainLayout>
   );

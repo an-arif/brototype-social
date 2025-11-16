@@ -7,6 +7,8 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Complaints from "./pages/Complaints";
+import ComplaintDetail from "./pages/ComplaintDetail";
+import PostDetail from "./pages/PostDetail";
 import Events from "./pages/Events";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
@@ -50,10 +52,26 @@ const App = () => (
               }
             />
             <Route
+              path="/post/:id"
+              element={
+                <ProtectedRoute>
+                  <PostDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/complaints"
               element={
                 <ProtectedRoute>
                   <Complaints />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/complaint/:id"
+              element={
+                <ProtectedRoute>
+                  <ComplaintDetail />
                 </ProtectedRoute>
               }
             />
