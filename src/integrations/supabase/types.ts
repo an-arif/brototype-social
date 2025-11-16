@@ -379,6 +379,13 @@ export type Database = {
             referencedRelation: "posts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "replies_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_roles: {

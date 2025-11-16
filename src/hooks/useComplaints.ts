@@ -75,7 +75,26 @@ export const useToggleUpvote = () => {
         if (error) throw error;
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["upvotes"] }),
+    onMutate: async ({ complaint_id, user_id, isUpvoted }) => {
+      await queryClient.cancelQueries({ queryKey: ["upvotes", complaint_id] });
+      const previousUpvotes = queryClient.getQueryData(["upvotes", complaint_id]);
+      
+      queryClient.setQueryData(["upvotes", complaint_id], (old: any) => {
+        if (isUpvoted) {
+          return old?.filter((upvote: any) => upvote.user_id !== user_id) || [];
+        } else {
+          return [...(old || []), { complaint_id, user_id, id: "temp-" + Date.now() }];
+        }
+      });
+      
+      return { previousUpvotes };
+    },
+    onError: (err, variables, context: any) => {
+      queryClient.setQueryData(["upvotes", variables.complaint_id], context.previousUpvotes);
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["upvotes", variables.complaint_id] });
+    },
   });
 };
 
