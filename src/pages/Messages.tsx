@@ -16,6 +16,7 @@ export default function Messages() {
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
   const [messageContent, setMessageContent] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const previousMessageCountRef = useRef<number>(0);
 
   const { data: conversations, isLoading: conversationsLoading } = useConversations(user?.id);
   const { data: messages, isLoading: messagesLoading } = useMessages(user?.id, selectedPartnerId || undefined);
@@ -39,16 +40,25 @@ export default function Messages() {
 
   const selectedConversation = conversations?.find((c: any) => c.partner.id === selectedPartnerId);
 
+  // Smart auto-scroll: only scroll when NEW messages arrive
   useEffect(() => {
-    if (!user?.id || !selectedPartnerId) return;
-
-    // Auto-scroll to the bottom of the messages list
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+    if (messages && messages.length > 0) {
+      const currentCount = messages.length;
+      const hadNewMessage = currentCount > previousMessageCountRef.current;
+      
+      if (hadNewMessage && scrollRef.current) {
+        scrollRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+      }
+      
+      previousMessageCountRef.current = currentCount;
     }
+  }, [messages]);
 
-    // When viewing a conversation, mark any new incoming messages as read
-    const hasUnreadFromPartner = messages?.some(
+  // Mark messages as read when viewing conversation
+  useEffect(() => {
+    if (!user?.id || !selectedPartnerId || !messages) return;
+
+    const hasUnreadFromPartner = messages.some(
       (message: any) =>
         message.sender_id === selectedPartnerId &&
         message.receiver_id === user.id &&
@@ -59,7 +69,7 @@ export default function Messages() {
       markRead.mutate({ userId: user.id, partnerId: selectedPartnerId });
       markMessageNotifications.mutate(user.id);
     }
-  }, [messages, selectedPartnerId, user?.id, markRead, markMessageNotifications]);
+  }, [messages, selectedPartnerId, user?.id]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,9 +78,14 @@ export default function Messages() {
     await sendMessage.mutateAsync({
       sender_id: user.id,
       receiver_id: selectedPartnerId,
-      content: messageContent,
+      content: messageContent.trim(),
     });
     setMessageContent("");
+    
+    // Immediately scroll for sender
+    setTimeout(() => {
+      scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }, 100);
   };
 
   return (
