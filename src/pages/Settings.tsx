@@ -1,9 +1,53 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/hooks/useProfile";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Settings() {
+  const { user } = useAuth();
+  const { data: profile } = useProfile(user?.id);
+  const { toast } = useToast();
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsChangingPassword(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setIsChangingPassword(false);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Password changed successfully",
+      });
+      setNewPassword("");
+      setConfirmPassword("");
+    }
+  };
+
   return (
     <MainLayout>
       <div className="max-w-4xl mx-auto space-y-6">
@@ -14,64 +58,60 @@ export default function Settings() {
 
         <Card className="glass-card">
           <CardHeader>
-            <CardTitle>Notifications</CardTitle>
-            <CardDescription>Configure how you receive updates</CardDescription>
+            <CardTitle>Account Details</CardTitle>
+            <CardDescription>Your account information</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="post-notifications">Post Notifications</Label>
-                <p className="text-sm text-muted-foreground">
-                  Get notified when someone comments on your post
-                </p>
-              </div>
-              <Switch id="post-notifications" />
+          <CardContent className="space-y-4">
+            <div>
+              <Label>Email</Label>
+              <Input value={user?.email || ""} disabled className="mt-2" />
             </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="complaint-notifications">Complaint Updates</Label>
-                <p className="text-sm text-muted-foreground">
-                  Receive updates on complaints you've submitted
-                </p>
-              </div>
-              <Switch id="complaint-notifications" />
+            <div>
+              <Label>Display Name</Label>
+              <Input value={profile?.display_name || ""} disabled className="mt-2" />
             </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="event-notifications">Event Reminders</Label>
-                <p className="text-sm text-muted-foreground">
-                  Get reminded about upcoming events
-                </p>
-              </div>
-              <Switch id="event-notifications" />
+            <div>
+              <Label>Username</Label>
+              <Input value={profile?.username || ""} disabled className="mt-2" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="glass-card">
           <CardHeader>
-            <CardTitle>Privacy</CardTitle>
-            <CardDescription>Control your privacy settings</CardDescription>
+            <CardTitle>Change Password</CardTitle>
+            <CardDescription>Update your account password</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="public-profile">Public Profile</Label>
-                <p className="text-sm text-muted-foreground">
-                  Allow others to view your profile
-                </p>
+          <CardContent>
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+              <div>
+                <Label htmlFor="new-password">New Password</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                  required
+                  className="mt-2"
+                />
               </div>
-              <Switch id="public-profile" defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="show-email">Show Email</Label>
-                <p className="text-sm text-muted-foreground">
-                  Display your email on your profile
-                </p>
+              <div>
+                <Label htmlFor="confirm-password">Confirm Password</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  required
+                  className="mt-2"
+                />
               </div>
-              <Switch id="show-email" />
-            </div>
+              <Button type="submit" disabled={isChangingPassword}>
+                {isChangingPassword ? "Changing..." : "Change Password"}
+              </Button>
+            </form>
           </CardContent>
         </Card>
       </div>

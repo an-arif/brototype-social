@@ -16,6 +16,9 @@ import UserProfile from "./pages/UserProfile";
 import Messages from "./pages/Messages";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
+import Feedback from "./pages/Feedback";
+import AIChat from "./pages/AIChat";
+import PublicChat from "./pages/PublicChat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -132,6 +135,30 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Admin />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/feedback"
+              element={
+                <ProtectedRoute>
+                  <Feedback />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ai-chat"
+              element={
+                <ProtectedRoute>
+                  <AIChat />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/public-chat"
+              element={
+                <ProtectedRoute>
+                  <PublicChat />
                 </ProtectedRoute>
               }
             />
