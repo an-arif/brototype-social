@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConversations, useMessages, useSendMessage, useMarkMessagesRead } from "@/hooks/useMessages";
+import { useMarkMessageNotificationsRead } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
 import { Send, Loader2, MessageCircle } from "lucide-react";
 
@@ -20,6 +21,14 @@ export default function Messages() {
   const { data: messages, isLoading: messagesLoading } = useMessages(user?.id, selectedPartnerId || undefined);
   const sendMessage = useSendMessage();
   const markRead = useMarkMessagesRead();
+  const markMessageNotifications = useMarkMessageNotificationsRead();
+
+  // Mark all message notifications as read when entering Messages page
+  useEffect(() => {
+    if (user?.id) {
+      markMessageNotifications.mutate(user.id);
+    }
+  }, [user?.id]);
 
   const selectedConversation = conversations?.find((c: any) => c.partner.id === selectedPartnerId);
 
