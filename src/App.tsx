@@ -1,9 +1,12 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Complaints from "./pages/Complaints";
@@ -25,8 +28,47 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse text-lg">Loading...</div></div>;
+  const { user, loading, signOut } = useAuth();
+
+  const { data: accountStatusData, isLoading: statusLoading } = useQuery({
+    queryKey: ["accountStatus", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("account_status, status_reason, status_until")
+        .eq("id", user.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
+  });
+
+  useEffect(() => {
+    if (!user || !accountStatusData) return;
+    const { account_status, status_reason } = accountStatusData as any;
+    if (account_status && account_status !== "active") {
+      let message = "Your account has been restricted.";
+      if (account_status === "banned") message = "Your account has been banned.";
+      else if (account_status === "suspended") message = "Your account has been suspended.";
+      else if (account_status === "disabled") message = "Your account has been disabled.";
+      if (status_reason) message += ` Reason: ${status_reason}`;
+      toast.error(message);
+      signOut();
+    }
+  }, [accountStatusData, user, signOut]);
+
+  if (loading || statusLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-lg">Loading...</div>
+      </div>
+    );
+  }
+
   if (!user) return <Navigate to="/auth" replace />;
   return <>{children}</>;
 }
