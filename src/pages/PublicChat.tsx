@@ -324,8 +324,8 @@ export default function PublicChat() {
                               {message.profiles?.display_name?.[0] || message.profiles?.username?.[0]}
                             </AvatarFallback>
                           </Avatar>
-                          <div className={`max-w-[75%] min-w-0 ${isOwnMessage ? 'flex flex-col items-end' : ''}`}>
-                            <div className={`flex items-baseline gap-2 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
+                          <div className={`inline-block max-w-[75%] ${isOwnMessage ? '' : ''}`}>
+                            <div className={`flex items-baseline gap-2 mb-1 ${isOwnMessage ? 'flex-row-reverse justify-end' : ''}`}>
                               <span className="font-semibold text-sm">
                                 {message.profiles?.display_name || message.profiles?.username}
                               </span>
@@ -333,7 +333,7 @@ export default function PublicChat() {
                                 {format(new Date(message.created_at), "h:mm a")}
                               </span>
                             </div>
-                            <div className={`mt-1 rounded-lg p-3 break-words ${
+                            <div className={`inline-block rounded-lg p-3 break-words ${
                               isOwnMessage 
                                 ? 'bg-primary text-primary-foreground' 
                                 : 'bg-muted'
