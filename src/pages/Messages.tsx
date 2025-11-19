@@ -6,23 +6,60 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
-import { useConversations, useMessages, useSendMessage, useMarkMessagesRead } from "@/hooks/useMessages";
+import { useConversations, useMessages, useSendMessage, useMarkMessagesRead, useLoadMoreMessages } from "@/hooks/useMessages";
 import { useMarkMessageNotificationsRead } from "@/hooks/useNotifications";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format, differenceInMinutes } from "date-fns";
 import { Send, Loader2, MessageCircle } from "lucide-react";
+
+// Helper to group messages
+const groupMessages = (messages: any[]) => {
+  const groups: any[] = [];
+  let currentGroup: any = null;
+
+  messages.forEach((message) => {
+    const shouldStartNewGroup =
+      !currentGroup ||
+      currentGroup.senderId !== message.sender_id ||
+      differenceInMinutes(new Date(message.created_at), new Date(currentGroup.lastMessageTime)) > 5;
+
+    if (shouldStartNewGroup) {
+      currentGroup = {
+        senderId: message.sender_id,
+        sender: message.sender,
+        messages: [message],
+        firstMessageTime: message.created_at,
+        lastMessageTime: message.created_at,
+      };
+      groups.push(currentGroup);
+    } else {
+      currentGroup.messages.push(message);
+      currentGroup.lastMessageTime = message.created_at;
+    }
+  });
+
+  return groups;
+};
 
 export default function Messages() {
   const { user } = useAuth();
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
   const [messageContent, setMessageContent] = useState("");
+  const [allMessages, setAllMessages] = useState<any[]>([]);
+  const [loadedCount, setLoadedCount] = useState(15);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const previousMessageCountRef = useRef<number>(0);
+  const isLoadingMoreRef = useRef(false);
 
   const { data: conversations, isLoading: conversationsLoading } = useConversations(user?.id);
-  const { data: messages, isLoading: messagesLoading } = useMessages(user?.id, selectedPartnerId || undefined);
+  const { data: messagesData, isLoading: messagesLoading } = useMessages(user?.id, selectedPartnerId || undefined, loadedCount);
   const sendMessage = useSendMessage();
   const markRead = useMarkMessagesRead();
   const markMessageNotifications = useMarkMessageNotificationsRead();
+  const loadMoreMessages = useLoadMoreMessages();
+
+  const messages = messagesData?.messages || [];
+  const hasMore = messagesData?.hasMore || false;
 
   // Mark all message notifications as read when entering Messages page
   useEffect(() => {
@@ -40,10 +77,25 @@ export default function Messages() {
 
   const selectedConversation = conversations?.find((c: any) => c.partner.id === selectedPartnerId);
 
+  // Reset loaded count when conversation changes
+  useEffect(() => {
+    if (selectedPartnerId) {
+      setLoadedCount(15);
+      setAllMessages([]);
+    }
+  }, [selectedPartnerId]);
+
+  // Update all messages when data changes
+  useEffect(() => {
+    if (messages) {
+      setAllMessages(messages);
+    }
+  }, [messages]);
+
   // Smart auto-scroll: only scroll when NEW messages arrive
   useEffect(() => {
-    if (messages && messages.length > 0) {
-      const currentCount = messages.length;
+    if (allMessages && allMessages.length > 0) {
+      const currentCount = allMessages.length;
       const hadNewMessage = currentCount > previousMessageCountRef.current;
       
       if (hadNewMessage && scrollRef.current) {
@@ -52,13 +104,39 @@ export default function Messages() {
       
       previousMessageCountRef.current = currentCount;
     }
-  }, [messages]);
+  }, [allMessages]);
+
+  // Handle scroll to load more
+  const handleScroll = async (e: any) => {
+    const target = e.target;
+    if (target.scrollTop === 0 && hasMore && !isLoadingMoreRef.current && user?.id && selectedPartnerId) {
+      isLoadingMoreRef.current = true;
+      const previousScrollHeight = target.scrollHeight;
+      
+      const olderMessages = await loadMoreMessages.mutateAsync({
+        userId: user.id,
+        partnerId: selectedPartnerId,
+        offset: loadedCount,
+        limit: 15,
+      });
+
+      setAllMessages((prev) => [...olderMessages, ...prev]);
+      setLoadedCount((prev) => prev + 15);
+      
+      // Restore scroll position
+      setTimeout(() => {
+        const newScrollHeight = target.scrollHeight;
+        target.scrollTop = newScrollHeight - previousScrollHeight;
+        isLoadingMoreRef.current = false;
+      }, 100);
+    }
+  };
 
   // Mark messages as read when viewing conversation
   useEffect(() => {
-    if (!user?.id || !selectedPartnerId || !messages) return;
+    if (!user?.id || !selectedPartnerId || !allMessages) return;
 
-    const hasUnreadFromPartner = messages.some(
+    const hasUnreadFromPartner = allMessages.some(
       (message: any) =>
         message.sender_id === selectedPartnerId &&
         message.receiver_id === user.id &&
@@ -69,7 +147,7 @@ export default function Messages() {
       markRead.mutate({ userId: user.id, partnerId: selectedPartnerId });
       markMessageNotifications.mutate(user.id);
     }
-  }, [messages, selectedPartnerId, user?.id]);
+  }, [allMessages, selectedPartnerId, user?.id]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,37 +243,65 @@ export default function Messages() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0 flex flex-col h-[calc(100%-5rem)]">
-                  <ScrollArea className="flex-1 p-4 max-h-[calc(100vh-20rem)]">
+                  <ScrollArea 
+                    className="flex-1 p-4 max-h-[calc(100vh-20rem)]"
+                    onScroll={handleScroll}
+                  >
+                    {hasMore && (
+                      <div className="text-center py-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={loadMoreMessages.isPending}
+                          className="text-xs"
+                        >
+                          {loadMoreMessages.isPending ? (
+                            <>
+                              <Loader2 className="h-3 w-3 animate-spin mr-2" />
+                              Loading...
+                            </>
+                          ) : (
+                            "Scroll up for more"
+                          )}
+                        </Button>
+                      </div>
+                    )}
                     {messagesLoading ? (
                       <div className="flex justify-center py-8">
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
                       </div>
-                    ) : messages && messages.length > 0 ? (
-                      <div className="space-y-4">
-                        {messages.map((message: any) => {
-                          const isOwn = message.sender_id === user?.id;
+                    ) : allMessages && allMessages.length > 0 ? (
+                      <div className="space-y-6">
+                        {groupMessages(allMessages).map((group: any, groupIndex: number) => {
+                          const isOwn = group.senderId === user?.id;
                           return (
-                            <div
-                              key={message.id}
-                              className={`flex gap-3 ${isOwn ? "flex-row-reverse" : "flex-row"}`}
-                            >
-                              <Avatar className="h-8 w-8 border border-border">
-                                <AvatarImage src={message.sender.avatar_url || ""} />
-                                <AvatarFallback>{message.sender.display_name[0]}</AvatarFallback>
-                              </Avatar>
-                              <div className={`flex flex-col ${isOwn ? "items-end" : "items-start"} max-w-[70%]`}>
-                                <div
-                                  className={`rounded-lg px-4 py-2 ${
-                                    isOwn
-                                      ? "bg-primary text-primary-foreground"
-                                      : "bg-accent text-accent-foreground"
-                                  }`}
-                                >
-                                  <p className="text-sm">{message.content}</p>
+                            <div key={groupIndex} className="space-y-1">
+                              {/* First message in group with avatar and timestamp */}
+                              <div className={`flex gap-3 ${isOwn ? "flex-row-reverse" : "flex-row"}`}>
+                                <Avatar className="h-8 w-8 border border-border">
+                                  <AvatarImage src={group.sender.avatar_url || ""} />
+                                  <AvatarFallback>{group.sender.display_name[0]}</AvatarFallback>
+                                </Avatar>
+                                <div className={`flex flex-col ${isOwn ? "items-end" : "items-start"} max-w-[70%] space-y-1`}>
+                                  {/* Show timestamp once for the group */}
+                                  <span className="text-xs text-muted-foreground px-2">
+                                    {format(new Date(group.firstMessageTime), "MMM d, h:mm a")}
+                                  </span>
+                                  
+                                  {/* All messages in the group */}
+                                  {group.messages.map((message: any) => (
+                                    <div
+                                      key={message.id}
+                                      className={`rounded-lg px-4 py-2 ${
+                                        isOwn
+                                          ? "bg-primary text-primary-foreground"
+                                          : "bg-accent text-accent-foreground"
+                                      }`}
+                                    >
+                                      <p className="text-sm">{message.content}</p>
+                                    </div>
+                                  ))}
                                 </div>
-                                <span className="text-xs text-muted-foreground mt-1">
-                                  {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
-                                </span>
                               </div>
                             </div>
                           );
