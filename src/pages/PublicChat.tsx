@@ -324,7 +324,7 @@ export default function PublicChat() {
                               {message.profiles?.display_name?.[0] || message.profiles?.username?.[0]}
                             </AvatarFallback>
                           </Avatar>
-                          <div className={`flex-1 max-w-[75%] min-w-0 ${isOwnMessage ? 'flex flex-col items-end' : ''}`}>
+                          <div className={`max-w-[75%] min-w-0 ${isOwnMessage ? 'flex flex-col items-end' : ''}`}>
                             <div className={`flex items-baseline gap-2 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
                               <span className="font-semibold text-sm">
                                 {message.profiles?.display_name || message.profiles?.username}
