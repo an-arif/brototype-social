@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,22 @@ export default function Messages() {
   const sendMessage = useSendMessage();
   const markRead = useMarkMessagesRead();
   const markMessageNotifications = useMarkMessageNotificationsRead();
+  const queryClient = useQueryClient();
+
+  // Poll for new conversations and messages every 2 seconds
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ["conversations", user.id] });
+
+      if (selectedPartnerId) {
+        queryClient.invalidateQueries({ queryKey: ["messages", user.id, selectedPartnerId] });
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [user?.id, selectedPartnerId, queryClient]);
 
   // Mark all message notifications as read when entering Messages page
   useEffect(() => {
