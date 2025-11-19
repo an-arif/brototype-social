@@ -4,10 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Send, Settings, Trash2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import { Loader2, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   role: "user" | "assistant";
@@ -18,19 +17,11 @@ export default function AIChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [apiKey, setApiKey] = useState("");
-  const [tempApiKey, setTempApiKey] = useState("");
-  const [showSettings, setShowSettings] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("ai_chat_messages");
-    const storedKey = localStorage.getItem("openai_api_key");
     if (stored) setMessages(JSON.parse(stored));
-    if (storedKey) {
-      setApiKey(storedKey);
-      setTempApiKey(storedKey);
-    }
   }, []);
 
   useEffect(() => {
@@ -43,13 +34,6 @@ export default function AIChat() {
     localStorage.setItem("ai_chat_messages", JSON.stringify(messages));
   }, [messages]);
 
-  const saveApiKey = () => {
-    localStorage.setItem("openai_api_key", tempApiKey);
-    setApiKey(tempApiKey);
-    setShowSettings(false);
-    toast.success("API key saved!");
-  };
-
   const clearChat = () => {
     setMessages([]);
     localStorage.removeItem("ai_chat_messages");
@@ -59,42 +43,50 @@ export default function AIChat() {
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
-    
-    if (!apiKey) {
-      toast.error("Please set your OpenAI API key in settings");
-      setShowSettings(true);
-      return;
-    }
 
     const userMessage: Message = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput("");
     setIsLoading(true);
 
     try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-3.5-turbo",
-          messages: [...messages, userMessage],
-        }),
+      const { data, error } = await supabase.functions.invoke('ai-chat', {
+        body: { messages: updatedMessages }
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to get response from OpenAI");
+      if (error) throw error;
+
+      // Handle streaming response
+      const reader = data.getReader();
+      const decoder = new TextDecoder();
+      let assistantContent = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n').filter(line => line.trim() !== '');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const jsonStr = line.slice(6);
+            if (jsonStr === '[DONE]') break;
+            
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const content = parsed.choices?.[0]?.delta?.content;
+              if (content) {
+                assistantContent += content;
+                setMessages([...updatedMessages, { role: "assistant", content: assistantContent }]);
+              }
+            } catch (e) {
+              // Skip invalid JSON
+            }
+          }
+        }
       }
-
-      const data = await response.json();
-      const assistantMessage: Message = {
-        role: "assistant",
-        content: data.choices[0].message.content,
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error: any) {
       toast.error(error.message || "Failed to get AI response");
     } finally {
@@ -116,40 +108,9 @@ export default function AIChat() {
                   Chat with AI powered by OpenAI
                 </p>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="icon" onClick={clearChat}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-                <Dialog open={showSettings} onOpenChange={setShowSettings}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="icon">
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>OpenAI API Settings</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>OpenAI API Key</Label>
-                        <Input
-                          type="password"
-                          value={tempApiKey}
-                          onChange={(e) => setTempApiKey(e.target.value)}
-                          placeholder="sk-..."
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Your API key is stored locally in your browser
-                        </p>
-                      </div>
-                      <Button onClick={saveApiKey} className="w-full">
-                        Save API Key
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
+              <Button variant="outline" size="icon" onClick={clearChat}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </div>
           </CardHeader>
 
@@ -158,11 +119,6 @@ export default function AIChat() {
               {messages.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <p>Start a conversation with the AI assistant</p>
-                  {!apiKey && (
-                    <p className="text-sm mt-2">
-                      Click the settings icon to add your OpenAI API key
-                    </p>
-                  )}
                 </div>
               ) : (
                 <div className="space-y-4">

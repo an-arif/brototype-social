@@ -314,27 +314,36 @@ export default function PublicChat() {
               <CardContent className="flex-1 flex flex-col p-0">
                 <ScrollArea className="flex-1 px-6">
                   <div className="space-y-4 py-4">
-                    {messages?.map((message: any) => (
-                      <div key={message.id} className="flex gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={message.profiles?.avatar_url} />
-                          <AvatarFallback>
-                            {message.profiles?.display_name?.[0] || message.profiles?.username?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-baseline gap-2">
-                            <span className="font-semibold text-sm">
-                              {message.profiles?.display_name || message.profiles?.username}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {format(new Date(message.created_at), "h:mm a")}
-                            </span>
+                    {messages?.map((message: any) => {
+                      const isOwnMessage = message.user_id === user?.id;
+                      return (
+                        <div key={message.id} className={`flex gap-3 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={message.profiles?.avatar_url} />
+                            <AvatarFallback>
+                              {message.profiles?.display_name?.[0] || message.profiles?.username?.[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className={`flex-1 max-w-[70%] ${isOwnMessage ? 'flex flex-col items-end' : ''}`}>
+                            <div className={`flex items-baseline gap-2 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
+                              <span className="font-semibold text-sm">
+                                {message.profiles?.display_name || message.profiles?.username}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(message.created_at), "h:mm a")}
+                              </span>
+                            </div>
+                            <div className={`mt-1 rounded-lg p-3 ${
+                              isOwnMessage 
+                                ? 'bg-primary text-primary-foreground' 
+                                : 'bg-muted'
+                            }`}>
+                              <p className="text-sm">{message.content}</p>
+                            </div>
                           </div>
-                          <p className="text-sm mt-1">{message.content}</p>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     {!messages?.length && (
                       <p className="text-center text-muted-foreground py-8">No messages yet</p>
                     )}
