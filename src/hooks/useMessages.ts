@@ -1,8 +1,36 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useEffect } from "react";
 
 export const useConversations = (userId?: string) => {
+  const queryClient = useQueryClient();
+
+  // Set up realtime subscription for conversations
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel('messages-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages'
+        },
+        () => {
+          // Invalidate conversations when any message changes
+          queryClient.invalidateQueries({ queryKey: ["conversations", userId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, queryClient]);
+
   return useQuery({
     queryKey: ["conversations", userId],
     queryFn: async () => {
@@ -52,6 +80,35 @@ export const useConversations = (userId?: string) => {
 };
 
 export const useMessages = (userId?: string, partnerId?: string) => {
+  const queryClient = useQueryClient();
+
+  // Set up realtime subscription for messages
+  useEffect(() => {
+    if (!userId || !partnerId) return;
+
+    const channel = supabase
+      .channel(`messages-${userId}-${partnerId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `or(and(sender_id.eq.${userId},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${userId}))`
+        },
+        () => {
+          // Invalidate messages when a new message is sent/received
+          queryClient.invalidateQueries({ queryKey: ["messages", userId, partnerId] });
+          queryClient.invalidateQueries({ queryKey: ["conversations", userId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, partnerId, queryClient]);
+
   return useQuery({
     queryKey: ["messages", userId, partnerId],
     queryFn: async () => {
