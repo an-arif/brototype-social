@@ -30,6 +30,13 @@ export default function Messages() {
     }
   }, [user?.id]);
 
+  // Mark message notifications as read when selecting a conversation
+  useEffect(() => {
+    if (selectedPartnerId && user?.id) {
+      markMessageNotifications.mutate(user.id);
+    }
+  }, [selectedPartnerId, user?.id]);
+
   const selectedConversation = conversations?.find((c: any) => c.partner.id === selectedPartnerId);
 
   useEffect(() => {
@@ -133,7 +140,7 @@ export default function Messages() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0 flex flex-col h-[calc(100%-5rem)]">
-                  <ScrollArea ref={scrollRef} className="flex-1 p-4">
+                  <ScrollArea ref={scrollRef} className="flex-1 p-4 max-h-[calc(100vh-20rem)]">
                     {messagesLoading ? (
                       <div className="flex justify-center py-8">
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
