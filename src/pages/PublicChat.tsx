@@ -13,13 +13,43 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { format, differenceInMinutes } from "date-fns";
+
+// Helper to group messages
+const groupMessages = (messages: any[]) => {
+  const groups: any[] = [];
+  let currentGroup: any = null;
+
+  messages.forEach((message) => {
+    const shouldStartNewGroup =
+      !currentGroup ||
+      currentGroup.userId !== message.user_id ||
+      differenceInMinutes(new Date(message.created_at), new Date(currentGroup.lastMessageTime)) > 5;
+
+    if (shouldStartNewGroup) {
+      currentGroup = {
+        userId: message.user_id,
+        profile: message.profiles,
+        messages: [message],
+        firstMessageTime: message.created_at,
+        lastMessageTime: message.created_at,
+      };
+      groups.push(currentGroup);
+    } else {
+      currentGroup.messages.push(message);
+      currentGroup.lastMessageTime = message.created_at;
+    }
+  });
+
+  return groups;
+};
 
 export default function PublicChat() {
   const { user } = useAuth();
   const { data: userRole } = useUserRole(user?.id);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [messageInput, setMessageInput] = useState("");
   const [channelName, setChannelName] = useState("");
@@ -78,7 +108,7 @@ export default function PublicChat() {
     if (!selectedChannelId) return;
 
     const channel = supabase
-      .channel(`channel-messages-${selectedChannelId}`)
+      .channel(`public-channel-${selectedChannelId}`)
       .on(
         "postgres_changes",
         {
@@ -88,7 +118,7 @@ export default function PublicChat() {
           filter: `channel_id=eq.${selectedChannelId}`,
         },
         () => {
-          refetchMessages();
+          queryClient.invalidateQueries({ queryKey: ["channel_messages", selectedChannelId] });
         }
       )
       .subscribe();
@@ -96,7 +126,7 @@ export default function PublicChat() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedChannelId]);
+  }, [selectedChannelId, queryClient]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -314,32 +344,37 @@ export default function PublicChat() {
               <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
                 <ScrollArea className="flex-1 px-6">
                   <div className="space-y-4 py-4">
-                    {messages?.map((message: any) => {
-                      const isOwnMessage = message.user_id === user?.id;
+                    {messages && groupMessages(messages).map((group: any, groupIndex: number) => {
+                      const isOwnMessage = group.userId === user?.id;
                       return (
-                        <div key={message.id} className={`flex gap-3 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
+                        <div key={groupIndex} className={`flex gap-3 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
                           <Avatar className="h-8 w-8 flex-shrink-0">
-                            <AvatarImage src={message.profiles?.avatar_url} />
+                            <AvatarImage src={group.profile?.avatar_url} />
                             <AvatarFallback>
-                              {message.profiles?.display_name?.[0] || message.profiles?.username?.[0]}
+                              {group.profile?.display_name?.[0] || group.profile?.username?.[0]}
                             </AvatarFallback>
                           </Avatar>
-                          <div className={`inline-block max-w-[75%] ${isOwnMessage ? '' : ''}`}>
-                            <div className={`flex items-baseline gap-2 mb-1 ${isOwnMessage ? 'flex-row-reverse justify-end' : ''}`}>
+                          <div className={`space-y-1 ${isOwnMessage ? 'flex flex-col items-end' : ''}`}>
+                            <div className={`flex items-baseline gap-2 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
                               <span className="font-semibold text-sm">
-                                {message.profiles?.display_name || message.profiles?.username}
+                                {group.profile?.display_name || group.profile?.username}
                               </span>
                               <span className="text-xs text-muted-foreground">
-                                {format(new Date(message.created_at), "h:mm a")}
+                                {format(new Date(group.firstMessageTime), "h:mm a")}
                               </span>
                             </div>
-                            <div className={`inline-block rounded-lg p-3 break-words ${
-                              isOwnMessage 
-                                ? 'bg-primary text-primary-foreground' 
-                                : 'bg-muted'
-                            }`}>
-                              <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
-                            </div>
+                            {group.messages.map((message: any) => (
+                              <div
+                                key={message.id}
+                                className={`inline-block rounded-lg p-3 break-words ${
+                                  isOwnMessage 
+                                    ? 'bg-primary text-primary-foreground' 
+                                    : 'bg-muted'
+                                }`}
+                              >
+                                <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       );
