@@ -57,16 +57,25 @@ export const useConversations = (userId?: string) => {
   });
 };
 
-export const useMessages = (userId?: string, partnerId?: string) => {
+export const useMessages = (userId?: string, partnerId?: string, limit: number = 15) => {
   return useQuery({
-    queryKey: ["messages", userId, partnerId],
+    queryKey: ["messages", userId, partnerId, limit],
     enabled: !!userId && !!partnerId,
     refetchInterval: 3000, // Poll every 3 seconds
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
     queryFn: async () => {
-      if (!userId || !partnerId) return [];
+      if (!userId || !partnerId) return { messages: [], hasMore: false, total: 0 };
 
+      // Get total count
+      const { count } = await supabase
+        .from("messages")
+        .select("*", { count: "exact", head: true })
+        .or(
+          `and(sender_id.eq.${userId},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${userId})`
+        );
+
+      // Get latest messages
       const { data, error } = await supabase
         .from("messages")
         .select(`
@@ -77,10 +86,50 @@ export const useMessages = (userId?: string, partnerId?: string) => {
         .or(
           `and(sender_id.eq.${userId},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${userId})`
         )
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false })
+        .limit(limit);
 
       if (error) throw error;
-      return data;
+      
+      return {
+        messages: data?.reverse() || [],
+        hasMore: (count || 0) > limit,
+        total: count || 0,
+      };
+    },
+  });
+};
+
+export const useLoadMoreMessages = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      userId,
+      partnerId,
+      offset,
+      limit = 15,
+    }: {
+      userId: string;
+      partnerId: string;
+      offset: number;
+      limit?: number;
+    }) => {
+      const { data, error } = await supabase
+        .from("messages")
+        .select(`
+          *,
+          sender:sender_id(id, username, display_name, avatar_url),
+          receiver:receiver_id(id, username, display_name, avatar_url)
+        `)
+        .or(
+          `and(sender_id.eq.${userId},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${userId})`
+        )
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (error) throw error;
+      return data?.reverse() || [];
     },
   });
 };
