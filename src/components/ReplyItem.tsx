@@ -2,11 +2,10 @@ import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, MessageCircle, Send, Loader2 } from "lucide-react";
+import { MessageCircle, Send, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateReply } from "@/hooks/useReplies";
-import { useToggleReplyLike, useReplyLikes } from "@/hooks/useReplyLikes";
 
 interface ReplyItemProps {
   reply: any;
@@ -20,11 +19,6 @@ export function ReplyItem({ reply, postId, complaintId, level = 0 }: ReplyItemPr
   const [showReplyBox, setShowReplyBox] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const createReply = useCreateReply();
-  const { data: likes } = useReplyLikes(reply.id);
-  const toggleLike = useToggleReplyLike();
-
-  const isLiked = likes?.some((like) => like.user_id === user?.id) || false;
-  const likeCount = likes?.length || 0;
 
   const handleReply = async () => {
     if (!replyContent.trim() || !user) return;
@@ -37,11 +31,6 @@ export function ReplyItem({ reply, postId, complaintId, level = 0 }: ReplyItemPr
     });
     setReplyContent("");
     setShowReplyBox(false);
-  };
-
-  const handleLike = async () => {
-    if (!user) return;
-    await toggleLike.mutateAsync({ reply_id: reply.id, user_id: user.id, isLiked });
   };
 
   return (
@@ -62,29 +51,17 @@ export function ReplyItem({ reply, postId, complaintId, level = 0 }: ReplyItemPr
           </div>
           <p className="text-sm text-foreground">{reply.content}</p>
           
-          <div className="flex items-center gap-4">
+          {level < 3 && (
             <Button
               variant="ghost"
               size="sm"
               className="gap-1 h-7 px-2 hover:text-primary"
-              onClick={handleLike}
+              onClick={() => setShowReplyBox(!showReplyBox)}
             >
-              <Heart className={`h-3 w-3 ${isLiked ? "fill-primary text-primary" : ""}`} />
-              {likeCount > 0 && <span className="text-xs">{likeCount}</span>}
+              <MessageCircle className="h-3 w-3" />
+              <span className="text-xs">Reply</span>
             </Button>
-            
-            {level < 3 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1 h-7 px-2 hover:text-primary"
-                onClick={() => setShowReplyBox(!showReplyBox)}
-              >
-                <MessageCircle className="h-3 w-3" />
-                <span className="text-xs">Reply</span>
-              </Button>
-            )}
-          </div>
+          )}
 
           {showReplyBox && (
             <div className="mt-3 space-y-2">
