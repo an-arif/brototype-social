@@ -16,6 +16,7 @@ import UserProfile from "./pages/UserProfile";
 import Messages from "./pages/Messages";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
+import UserManagement from "./pages/UserManagement";
 import Feedback from "./pages/Feedback";
 import AIChat from "./pages/AIChat";
 import PublicChat from "./pages/PublicChat";
@@ -25,19 +26,8 @@ const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-lg">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse text-lg">Loading...</div></div>;
+  if (!user) return <Navigate to="/auth" replace />;
   return <>{children}</>;
 }
 
@@ -50,119 +40,21 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Home />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/post/:id"
-              element={
-                <ProtectedRoute>
-                  <PostDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/notifications"
-              element={
-                <ProtectedRoute>
-                  <Notifications />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/complaints"
-              element={
-                <ProtectedRoute>
-                  <Complaints />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/complaint/:id"
-              element={
-                <ProtectedRoute>
-                  <ComplaintDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/events"
-              element={
-                <ProtectedRoute>
-                  <Events />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile/:id"
-              element={
-                <ProtectedRoute>
-                  <UserProfile />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/messages"
-              element={
-                <ProtectedRoute>
-                  <Messages />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute>
-                  <Admin />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/feedback"
-              element={
-                <ProtectedRoute>
-                  <Feedback />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/ai-chat"
-              element={
-                <ProtectedRoute>
-                  <AIChat />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/public-chat"
-              element={
-                <ProtectedRoute>
-                  <PublicChat />
-                </ProtectedRoute>
-              }
-            />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+            <Route path="/post/:id" element={<ProtectedRoute><PostDetail /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+            <Route path="/complaints" element={<ProtectedRoute><Complaints /></ProtectedRoute>} />
+            <Route path="/complaint/:id" element={<ProtectedRoute><ComplaintDetail /></ProtectedRoute>} />
+            <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/profile/:id" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+            <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+            <Route path="/admin/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
+            <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
+            <Route path="/ai-chat" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
+            <Route path="/public-chat" element={<ProtectedRoute><PublicChat /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
