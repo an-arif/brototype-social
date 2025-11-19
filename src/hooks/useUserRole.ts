@@ -10,14 +10,16 @@ export const useUserRole = (userId?: string) => {
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", userId)
-        .single();
+        .eq("user_id", userId);
 
-      if (error) {
+      if (error || !data || data.length === 0) {
         // User might not have a role yet
         return { role: "user" };
       }
-      return data;
+
+      // Check if user has admin role
+      const hasAdminRole = data.some((r: any) => r.role === "admin");
+      return { role: hasAdminRole ? "admin" : data[0].role };
     },
     enabled: !!userId,
   });
