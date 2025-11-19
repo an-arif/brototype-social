@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function Auth() {
   const { signIn, signUp } = useAuth();
@@ -26,6 +28,31 @@ export default function Auth() {
     e.preventDefault();
     setIsLoading(true);
     try {
+      // First check account status before attempting login
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("account_status, status_reason")
+        .eq("id", (await supabase.auth.signInWithPassword({ email: signInData.email, password: signInData.password })).data.user?.id)
+        .single();
+
+      if (profileError || !profileData) {
+        await signIn(signInData.email, signInData.password);
+        return;
+      }
+
+      if (profileData.account_status !== "active") {
+        let message = "Your account has been ";
+        if (profileData.account_status === "banned") message += "banned";
+        else if (profileData.account_status === "suspended") message += "suspended";
+        else if (profileData.account_status === "disabled") message += "disabled";
+        
+        if (profileData.status_reason) message += `: ${profileData.status_reason}`;
+        
+        toast.error(message);
+        await supabase.auth.signOut();
+        return;
+      }
+
       await signIn(signInData.email, signInData.password);
     } finally {
       setIsLoading(false);

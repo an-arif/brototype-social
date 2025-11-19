@@ -20,25 +20,26 @@ interface Message {
 export default function AIChat() {
   const { user } = useAuth();
   const { data: userRole } = useUserRole(user?.id);
-  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [apiKey, setApiKey] = useState("");
-  const [newApiKey, setNewApiKey] = useState("");
-  const [isUpdatingKey, setIsUpdatingKey] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const isAdmin = userRole?.role === "admin";
 
   useEffect(() => {
-    fetchApiKey();
+    const stored = localStorage.getItem("ai_chat_messages");
+    if (stored) setMessages(JSON.parse(stored));
   }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
+  }, [messages]);
+
+  useEffect(() => {
+    localStorage.setItem("ai_chat_messages", JSON.stringify(messages));
   }, [messages]);
 
   const fetchApiKey = async () => {

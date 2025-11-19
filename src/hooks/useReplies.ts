@@ -56,7 +56,19 @@ export const useCreateReply = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (reply: any) => {
-      const { data, error } = await supabase.from("replies").insert(reply).select().single();
+      // Check if user is admin and auto-flag as official
+      const { data: userRole } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", reply.user_id);
+      
+      const isAdmin = userRole?.some((r: any) => r.role === "admin");
+      
+      const { data, error } = await supabase
+        .from("replies")
+        .insert({ ...reply, is_official: isAdmin || reply.is_official })
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },
