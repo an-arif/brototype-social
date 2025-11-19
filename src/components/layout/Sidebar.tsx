@@ -5,18 +5,26 @@ import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/hooks/useNotifications";
 import { Badge } from "@/components/ui/badge";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useConversations } from "@/hooks/useMessages";
 
 export function Sidebar() {
   const { signOut, user } = useAuth();
   const { data: notifications } = useNotifications(user?.id);
   const { data: userRole } = useUserRole(user?.id);
-  const unreadCount = notifications?.filter((n) => !n.read).length || 0;
+  const { data: conversations } = useConversations(user?.id);
+  
+  // Exclude message notifications from the notification badge
+  const unreadNotificationCount = notifications?.filter((n) => !n.read && n.type !== "message").length || 0;
+  
+  // Count unread messages
+  const unreadMessagesCount = conversations?.reduce((acc: number, conv: any) => acc + conv.unreadCount, 0) || 0;
+  
   const isAdmin = userRole?.role === "admin";
 
   const navItems = [
     { icon: Home, label: "Home", path: "/" },
-    { icon: Bell, label: "Notifications", path: "/notifications", badge: unreadCount },
-    { icon: MessageCircle, label: "Messages", path: "/messages" },
+    { icon: Bell, label: "Notifications", path: "/notifications", badge: unreadNotificationCount },
+    { icon: MessageCircle, label: "Messages", path: "/messages", badge: unreadMessagesCount },
     { icon: AlertCircle, label: "Complaints", path: "/complaints" },
     { icon: Calendar, label: "Events", path: "/events" },
     { icon: User, label: "Profile", path: "/profile" },
