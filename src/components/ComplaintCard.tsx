@@ -8,6 +8,8 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToggleUpvote, useUpvotes } from "@/hooks/useComplaints";
 import { useNavigate } from "react-router-dom";
+import { useUserRole } from "@/hooks/useUserRole";
+import { AdminBadge } from "@/components/AdminBadge";
 
 interface ComplaintCardProps {
   complaint: {
@@ -33,9 +35,11 @@ export const ComplaintCard = ({ complaint }: ComplaintCardProps) => {
   const { data: upvotes } = useUpvotes(complaint.id);
   const toggleUpvote = useToggleUpvote();
   const [isUpvoting, setIsUpvoting] = useState(false);
+  const { data: userRole } = useUserRole(complaint.user_id);
 
   const isUpvoted = upvotes?.some((upvote) => upvote.user_id === user?.id) || false;
   const upvoteCount = upvotes?.length || 0;
+  const isComplaintFromAdmin = userRole?.role === "admin";
 
   const handleUpvote = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -53,14 +57,29 @@ export const ComplaintCard = ({ complaint }: ComplaintCardProps) => {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3 flex-1">
-            <Avatar className="h-10 w-10 border-2 border-border">
+            <Avatar 
+              className="h-10 w-10 border-2 border-border cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/profile/${complaint.user_id}`);
+              }}
+            >
               <AvatarImage src={complaint.profiles.avatar_url || ""} />
               <AvatarFallback>{complaint.profiles.display_name[0]}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-semibold">{complaint.profiles.display_name}</span>
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <span 
+                  className="font-semibold cursor-pointer hover:underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/profile/${complaint.user_id}`);
+                  }}
+                >
+                  {complaint.profiles.display_name}
+                </span>
                 <span className="text-muted-foreground text-sm">@{complaint.profiles.username}</span>
+                {isComplaintFromAdmin && <AdminBadge />}
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {complaint.is_pinned && (

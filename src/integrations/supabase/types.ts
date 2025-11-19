@@ -488,33 +488,56 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_status: Database["public"]["Enums"]["account_status"] | null
           avatar_url: string | null
           bio: string | null
           created_at: string
           display_name: string
           id: string
+          status_reason: string | null
+          status_until: string | null
+          status_updated_at: string | null
+          status_updated_by: string | null
           updated_at: string
           username: string
         }
         Insert: {
+          account_status?: Database["public"]["Enums"]["account_status"] | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
           display_name: string
           id: string
+          status_reason?: string | null
+          status_until?: string | null
+          status_updated_at?: string | null
+          status_updated_by?: string | null
           updated_at?: string
           username: string
         }
         Update: {
+          account_status?: Database["public"]["Enums"]["account_status"] | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
           display_name?: string
           id?: string
+          status_reason?: string | null
+          status_until?: string | null
+          status_updated_at?: string | null
+          status_updated_by?: string | null
           updated_at?: string
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_status_updated_by_fkey"
+            columns: ["status_updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       replies: {
         Row: {
@@ -626,6 +649,7 @@ export type Database = {
       }
     }
     Enums: {
+      account_status: "active" | "banned" | "suspended" | "disabled"
       app_role: "admin" | "user"
     }
     CompositeTypes: {
@@ -754,6 +778,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_status: ["active", "banned", "suspended", "disabled"],
       app_role: ["admin", "user"],
     },
   },
