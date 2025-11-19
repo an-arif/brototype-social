@@ -51,14 +51,21 @@ export default function AIChat() {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('ai-chat', {
-        body: { messages: updatedMessages }
+      const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
+      
+      const response = await fetch(CHAT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ messages: updatedMessages }),
       });
 
-      if (error) throw error;
+      if (!response.ok || !response.body) {
+        throw new Error('Failed to get response from AI');
+      }
 
-      // Handle streaming response
-      const reader = data.getReader();
+      const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let assistantContent = "";
 
@@ -66,7 +73,7 @@ export default function AIChat() {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
+        const chunk = decoder.decode(value, { stream: true });
         const lines = chunk.split('\n').filter(line => line.trim() !== '');
 
         for (const line of lines) {
