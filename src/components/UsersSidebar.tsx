@@ -1,21 +1,32 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
+import { Search } from "lucide-react";
 
 export function UsersSidebar() {
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
   
   const { data: users, isLoading } = useQuery({
-    queryKey: ["users"],
+    queryKey: ["users", searchQuery],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("profiles")
         .select("id, username, display_name, avatar_url, bio")
-        .order("created_at", { ascending: false })
-        .limit(10);
+        .order("created_at", { ascending: false });
+      
+      if (searchQuery.trim()) {
+        query = query.or(`display_name.ilike.%${searchQuery}%,username.ilike.%${searchQuery}%`);
+      } else {
+        query = query.limit(10);
+      }
+      
+      const { data, error } = await query;
       
       if (error) throw error;
       return data;
@@ -33,6 +44,15 @@ export function UsersSidebar() {
         <CardTitle className="text-lg">Community Members</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search users..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
         {isLoading ? (
           Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="flex items-start gap-3">

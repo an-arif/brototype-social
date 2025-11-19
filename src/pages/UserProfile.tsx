@@ -11,6 +11,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { PostCard } from "@/components/PostCard";
 import { ComplaintCard } from "@/components/ComplaintCard";
 import { EditProfileDialog } from "@/components/EditProfileDialog";
+import { MessageDialog } from "@/components/MessageDialog";
 import { useState } from "react";
 
 export default function UserProfile() {
@@ -68,25 +69,28 @@ export default function UserProfile() {
                 Edit Profile
               </Button>
             ) : (
-              <Button
-                variant={isFollowing ? "outline" : "default"}
-                size="sm"
-                className="gap-2"
-                onClick={handleFollow}
-                disabled={toggleFollow.isPending}
-              >
-                {isFollowing ? (
-                  <>
-                    <UserMinus className="h-4 w-4" />
-                    Unfollow
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="h-4 w-4" />
-                    Follow
-                  </>
-                )}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant={isFollowing ? "outline" : "default"}
+                  size="sm"
+                  className="gap-2"
+                  onClick={handleFollow}
+                  disabled={toggleFollow.isPending}
+                >
+                  {isFollowing ? (
+                    <>
+                      <UserMinus className="h-4 w-4" />
+                      Unfollow
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-4 w-4" />
+                      Follow
+                    </>
+                  )}
+                </Button>
+                <MessageDialog receiverId={id!} receiverName={profile.display_name} />
+              </div>
             )}
           </CardHeader>
           <CardContent className="space-y-6">

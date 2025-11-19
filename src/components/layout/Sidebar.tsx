@@ -1,4 +1,4 @@
-import { Home, AlertCircle, Calendar, User, Settings, LogOut, Bell, Shield } from "lucide-react";
+import { Home, AlertCircle, Calendar, User, Settings, LogOut, Bell, Shield, MessageCircle } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ export function Sidebar() {
   const navItems = [
     { icon: Home, label: "Home", path: "/" },
     { icon: Bell, label: "Notifications", path: "/notifications", badge: unreadCount },
+    { icon: MessageCircle, label: "Messages", path: "/messages" },
     { icon: AlertCircle, label: "Complaints", path: "/complaints" },
     { icon: Calendar, label: "Events", path: "/events" },
     { icon: User, label: "Profile", path: "/profile" },

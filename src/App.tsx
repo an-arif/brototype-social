@@ -13,6 +13,7 @@ import Notifications from "./pages/Notifications";
 import Events from "./pages/Events";
 import Profile from "./pages/Profile";
 import UserProfile from "./pages/UserProfile";
+import Messages from "./pages/Messages";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
@@ -107,6 +108,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <UserProfile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/messages"
+              element={
+                <ProtectedRoute>
+                  <Messages />
                 </ProtectedRoute>
               }
             />
