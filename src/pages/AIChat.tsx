@@ -112,7 +112,7 @@ export default function AIChat() {
                   AI Chat Assistant
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Chat with AI powered by OpenAI
+                  Powered by GPT-4o Mini
                 </p>
               </div>
               <Button variant="outline" size="icon" onClick={clearChat}>
@@ -121,7 +121,7 @@ export default function AIChat() {
             </div>
           </CardHeader>
 
-          <CardContent className="flex-1 flex flex-col p-0">
+          <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
             <ScrollArea className="flex-1 p-6">
               {messages.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
@@ -135,13 +135,13 @@ export default function AIChat() {
                       className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                     >
                       <div
-                        className={`max-w-[80%] rounded-lg p-4 ${
+                        className={`max-w-[85%] rounded-lg p-4 break-words ${
                           message.role === "user"
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted"
                         }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                       </div>
                     </div>
                   ))}
