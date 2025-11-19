@@ -40,16 +40,26 @@ export default function Messages() {
   const selectedConversation = conversations?.find((c: any) => c.partner.id === selectedPartnerId);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
+    if (!user?.id || !selectedPartnerId) return;
 
-  useEffect(() => {
-    if (selectedPartnerId && user?.id) {
-      markRead.mutate({ userId: user.id, partnerId: selectedPartnerId });
+    // Auto-scroll to the bottom of the messages list
+    if (scrollRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
     }
-  }, [selectedPartnerId, user?.id]);
+
+    // When viewing a conversation, mark any new incoming messages as read
+    const hasUnreadFromPartner = messages?.some(
+      (message: any) =>
+        message.sender_id === selectedPartnerId &&
+        message.receiver_id === user.id &&
+        !message.read
+    );
+
+    if (hasUnreadFromPartner) {
+      markRead.mutate({ userId: user.id, partnerId: selectedPartnerId });
+      markMessageNotifications.mutate(user.id);
+    }
+  }, [messages, selectedPartnerId, user?.id, markRead, markMessageNotifications]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,7 +150,7 @@ export default function Messages() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0 flex flex-col h-[calc(100%-5rem)]">
-                  <ScrollArea ref={scrollRef} className="flex-1 p-4 max-h-[calc(100vh-20rem)]">
+                  <ScrollArea className="flex-1 p-4 max-h-[calc(100vh-20rem)]">
                     {messagesLoading ? (
                       <div className="flex justify-center py-8">
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -175,6 +185,7 @@ export default function Messages() {
                             </div>
                           );
                         })}
+                        <div ref={scrollRef} />
                       </div>
                     ) : (
                       <div className="text-center py-12">

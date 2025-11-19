@@ -76,6 +76,7 @@ export const useConversations = (userId?: string) => {
       );
     },
     enabled: !!userId,
+    refetchInterval: userId ? 2000 : false,
   });
 };
 
@@ -128,6 +129,7 @@ export const useMessages = (userId?: string, partnerId?: string) => {
       return data;
     },
     enabled: !!userId && !!partnerId,
+    refetchInterval: userId && partnerId ? 2000 : false,
   });
 };
 
