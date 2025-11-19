@@ -366,7 +366,7 @@ export default function PublicChat() {
                             {group.messages.map((message: any) => (
                               <div
                                 key={message.id}
-                                className={`inline-block rounded-lg p-3 break-words ${
+                                className={`rounded-lg p-3 break-words max-w-[75%] ${
                                   isOwnMessage 
                                     ? 'bg-primary text-primary-foreground' 
                                     : 'bg-muted'
