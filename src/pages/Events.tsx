@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Clock, Heart, Plus } from "lucide-react";
+import { Calendar, Clock, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, isPast, isFuture, isWithinInterval } from "date-fns";
 
 export default function Events() {
   const { user } = useAuth();
@@ -24,6 +24,7 @@ export default function Events() {
     title: "",
     description: "",
     event_date: "",
+    event_end_date: "",
   });
 
   const isAdmin = userRole?.role === "admin";
@@ -45,9 +46,35 @@ export default function Events() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       toast.success("Event created!");
+      setEventData({ title: "", description: "", event_date: "", event_end_date: "" });
       setOpen(false);
     },
   });
+
+  const deleteEvent = useMutation({
+    mutationFn: async (eventId: string) => {
+      await supabase.from("events").delete().eq("id", eventId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      toast.success("Event deleted!");
+    },
+  });
+
+  const getEventStatus = (startDate: string, endDate: string | null) => {
+    const start = new Date(startDate);
+    const end = endDate ? new Date(endDate) : start;
+    const now = new Date();
+
+    if (isPast(end)) {
+      return { label: "Ended", variant: "secondary" as const };
+    } else if (isWithinInterval(now, { start, end })) {
+      return { label: "Happening", variant: "default" as const };
+    } else if (isFuture(start)) {
+      return { label: "Upcoming", variant: "outline" as const };
+    }
+    return { label: "Upcoming", variant: "outline" as const };
+  };
 
   return (
     <MainLayout>
@@ -65,28 +92,56 @@ export default function Events() {
               <DialogContent>
                 <DialogHeader><DialogTitle>Create Event</DialogTitle></DialogHeader>
                 <div className="space-y-4">
-                  <div><Label>Title</Label><Input value={eventData.title} onChange={(e) => setEventData({ ...eventData, title: e.target.value })} /></div>
-                  <div><Label>Description</Label><Textarea value={eventData.description} onChange={(e) => setEventData({ ...eventData, description: e.target.value })} /></div>
-                  <div><Label>Date & Time</Label><Input type="datetime-local" value={eventData.event_date} onChange={(e) => setEventData({ ...eventData, event_date: e.target.value })} /></div>
-                  <Button onClick={() => createEvent.mutate()} className="w-full">Create</Button>
+                  <div><Label>Title</Label><Input value={eventData.title} onChange={(e) => setEventData({ ...eventData, title: e.target.value })} required /></div>
+                  <div><Label>Description</Label><Textarea value={eventData.description} onChange={(e) => setEventData({ ...eventData, description: e.target.value })} required /></div>
+                  <div><Label>Start Date & Time</Label><Input type="datetime-local" value={eventData.event_date} onChange={(e) => setEventData({ ...eventData, event_date: e.target.value })} required /></div>
+                  <div><Label>End Date & Time (Optional)</Label><Input type="datetime-local" value={eventData.event_end_date} onChange={(e) => setEventData({ ...eventData, event_end_date: e.target.value })} /></div>
+                  <Button onClick={() => createEvent.mutate()} className="w-full" disabled={!eventData.title || !eventData.description || !eventData.event_date}>Create</Button>
                 </div>
               </DialogContent>
             </Dialog>
           )}
         </div>
         <div className="space-y-4">
-          {events?.map((event: any) => (
-            <Card key={event.id}>
-              <CardHeader><CardTitle>{event.title}</CardTitle></CardHeader>
-              <CardContent>
-                <div className="flex gap-4 text-sm text-muted-foreground mb-2">
-                  <div className="flex items-center gap-2"><Calendar className="h-4 w-4" />{format(new Date(event.event_date), "PPP")}</div>
-                  <div className="flex items-center gap-2"><Clock className="h-4 w-4" />{format(new Date(event.event_date), "p")}</div>
-                </div>
-                <p>{event.description}</p>
-              </CardContent>
-            </Card>
-          ))}
+          {events?.map((event: any) => {
+            const status = getEventStatus(event.event_date, event.event_end_date);
+            return (
+              <Card key={event.id}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <CardTitle>{event.title}</CardTitle>
+                      <Badge variant={status.variant}>{status.label}</Badge>
+                    </div>
+                    {isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteEvent.mutate(event.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-4 text-sm text-muted-foreground mb-2">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      {format(new Date(event.event_date), "PPP")}
+                      {event.event_end_date && ` - ${format(new Date(event.event_end_date), "PPP")}`}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      {format(new Date(event.event_date), "p")}
+                      {event.event_end_date && ` - ${format(new Date(event.event_end_date), "p")}`}
+                    </div>
+                  </div>
+                  <p>{event.description}</p>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
     </MainLayout>

@@ -11,14 +11,18 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { useUserRole } from "@/hooks/useUserRole";
 
 export default function Feedback() {
   const { user } = useAuth();
+  const { data: userRole } = useUserRole(user?.id);
   const { toast } = useToast();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const isAdmin = userRole?.role === "admin";
 
   const { data: feedbacks, refetch } = useQuery({
     queryKey: ["feedbacks"],
@@ -130,33 +134,35 @@ export default function Feedback() {
           </CardContent>
         </Card>
 
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle>All Feedback</CardTitle>
-            <CardDescription>Community feedback and suggestions</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {feedbacks?.map((feedback: any) => (
-              <div key={feedback.id} className="p-4 border border-border rounded-lg space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">{feedback.title}</h3>
-                  <span className="text-xs text-muted-foreground capitalize px-2 py-1 bg-accent rounded">
-                    {feedback.category}
-                  </span>
+        {isAdmin && (
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle>All Feedback</CardTitle>
+              <CardDescription>User feedback and suggestions</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {feedbacks?.map((feedback: any) => (
+                <div key={feedback.id} className="p-4 border border-border rounded-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">{feedback.title}</h3>
+                    <span className="text-xs text-muted-foreground capitalize px-2 py-1 bg-accent rounded">
+                      {feedback.category}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{feedback.description}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{feedback.profiles?.display_name || feedback.profiles?.username}</span>
+                    <span>•</span>
+                    <span>{format(new Date(feedback.created_at), "MMM d, yyyy")}</span>
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground">{feedback.description}</p>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{feedback.profiles?.display_name || feedback.profiles?.username}</span>
-                  <span>•</span>
-                  <span>{format(new Date(feedback.created_at), "MMM d, yyyy")}</span>
-                </div>
-              </div>
-            ))}
-            {!feedbacks?.length && (
-              <p className="text-center text-muted-foreground py-8">No feedback yet</p>
-            )}
-          </CardContent>
-        </Card>
+              ))}
+              {!feedbacks?.length && (
+                <p className="text-center text-muted-foreground py-8">No feedback yet</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </MainLayout>
   );
