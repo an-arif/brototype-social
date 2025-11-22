@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { MessageCircle, Send, Loader2, Sparkles } from "lucide-react";
+import { MessageCircle, Send, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateReply } from "@/hooks/useReplies";
@@ -24,7 +24,6 @@ export function ReplyItem({ reply, postId, complaintId, level = 0 }: ReplyItemPr
   const navigate = useNavigate();
   const [showReplyBox, setShowReplyBox] = useState(false);
   const [replyContent, setReplyContent] = useState("");
-  const [enhancing, setEnhancing] = useState(false);
   const createReply = useCreateReply();
   const { data: userRole } = useUserRole(user?.id);
   const { data: replyUserRole } = useUserRole(reply.user_id);
@@ -43,30 +42,6 @@ export function ReplyItem({ reply, postId, complaintId, level = 0 }: ReplyItemPr
     });
     setReplyContent("");
     setShowReplyBox(false);
-  };
-
-  const handleEnhance = async () => {
-    if (!replyContent.trim()) return;
-    setEnhancing(true);
-    try {
-      const response = await fetch("https://text.pollinations.ai/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [
-            { role: "system", content: "You are a helpful assistant. Enhance and improve the following reply to make it more clear, professional, and helpful. Keep it concise." },
-            { role: "user", content: replyContent }
-          ]
-        })
-      });
-      const enhanced = await response.text();
-      setReplyContent(enhanced);
-      toast.success("Reply enhanced!");
-    } catch (error) {
-      toast.error("Failed to enhance reply");
-    } finally {
-      setEnhancing(false);
-    }
   };
 
   return (
@@ -120,22 +95,6 @@ export function ReplyItem({ reply, postId, complaintId, level = 0 }: ReplyItemPr
                 className="min-h-[80px] bg-background/50 resize-none text-sm"
               />
               <div className="flex justify-end gap-2">
-                {isAdmin && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleEnhance}
-                    disabled={enhancing || !replyContent.trim()}
-                    className="gap-2"
-                  >
-                    {enhancing ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-3 w-3" />
-                    )}
-                    Enhance
-                  </Button>
-                )}
                 <Button
                   variant="ghost"
                   size="sm"
