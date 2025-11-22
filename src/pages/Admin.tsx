@@ -23,7 +23,6 @@ export default function Admin() {
       const { data, error } = await supabase
         .from("complaints")
         .select("*, profiles:profiles!complaints_user_id_fkey(username, display_name, avatar_url)")
-        .eq("is_private", false)
         .order("created_at", { ascending: false});
       if (error) throw error;
       return data;
@@ -117,7 +116,7 @@ export default function Admin() {
         <Tabs defaultValue="feedbacks" className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-secondary/50 glass">
             <TabsTrigger value="feedbacks">Feedbacks</TabsTrigger>
-            <TabsTrigger value="urgent">Urgent Complaints</TabsTrigger>
+            <TabsTrigger value="urgent">All Complaints</TabsTrigger>
             <TabsTrigger value="docs" className="gap-2">
               <Book className="h-4 w-4" />
               Documentation
@@ -163,11 +162,21 @@ export default function Admin() {
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : urgentComplaints.length > 0 ? (
-              urgentComplaints.map((complaint: any) => (
+            ) : allComplaints && allComplaints.length > 0 ? (
+              allComplaints.map((complaint: any) => (
                 <Card key={complaint.id} className="glass-card cursor-pointer hover:bg-accent/50" onClick={() => navigate(`/complaint/${complaint.id}`)}>
                   <CardHeader>
-                    <CardTitle>{complaint.title}</CardTitle>
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="flex-1">{complaint.title}</CardTitle>
+                      <div className="flex gap-2 flex-shrink-0">
+                        {complaint.is_private && (
+                          <Badge variant="secondary">Private</Badge>
+                        )}
+                        {complaint.is_urgent && (
+                          <Badge variant="destructive">Urgent</Badge>
+                        )}
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <p className="text-muted-foreground line-clamp-2">{complaint.description}</p>
@@ -177,7 +186,7 @@ export default function Admin() {
             ) : (
               <div className="text-center py-12 glass-card rounded-xl">
                 <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">No urgent complaints.</p>
+                <p className="text-muted-foreground">No complaints.</p>
               </div>
             )}
           </TabsContent>
