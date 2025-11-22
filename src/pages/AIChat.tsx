@@ -195,8 +195,8 @@ export default function AIChat() {
           </CardHeader>
 
           <CardContent className="flex-1 flex flex-col p-4 overflow-hidden">
-            <Tabs defaultValue="chat" className="flex-1 flex flex-col">
-              <TabsList className="w-full grid grid-cols-2 bg-secondary/50 glass">
+            <Tabs defaultValue="chat" className="flex-1 flex flex-col overflow-hidden">
+              <TabsList className="w-full grid grid-cols-2 bg-secondary/50 glass mb-4">
                 <TabsTrigger value="chat" className="gap-2">
                   <MessageSquare className="h-4 w-4" />
                   Chat
@@ -207,15 +207,15 @@ export default function AIChat() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="chat" className="flex-1 flex flex-col mt-0 data-[state=active]:flex overflow-hidden">
-                <div className="flex items-center justify-between px-6 pt-4 pb-2">
+              <TabsContent value="chat" className="flex-1 flex flex-col mt-0 data-[state=active]:flex data-[state=inactive]:hidden overflow-hidden h-full">
+                <div className="flex items-center justify-between px-2 pb-2">
                   <p className="text-sm text-muted-foreground">Powered by GPT-4o Mini</p>
                   <Button variant="outline" size="sm" onClick={clearChat} className="gap-2">
                     <Trash2 className="h-4 w-4" />
                     Clear
                   </Button>
                 </div>
-                <ScrollArea className="flex-1 px-6">
+                <ScrollArea className="flex-1 px-2 h-full">
                   {messages.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">
                       <p>Start a conversation with the AI assistant</p>
@@ -243,7 +243,7 @@ export default function AIChat() {
                   )}
                 </ScrollArea>
 
-                <form onSubmit={sendMessage} className="p-4 border-t border-border/50">
+                <form onSubmit={sendMessage} className="p-2 border-t border-border/50 mt-auto">
                   <div className="flex gap-2">
                     <Input
                       value={input}
@@ -263,8 +263,8 @@ export default function AIChat() {
                 </form>
               </TabsContent>
 
-              <TabsContent value="image" className="flex-1 flex flex-col mt-0 data-[state=active]:flex overflow-hidden">
-                <div className="flex items-center justify-between px-6 pt-4 pb-2">
+              <TabsContent value="image" className="flex-1 flex flex-col mt-0 data-[state=active]:flex data-[state=inactive]:hidden overflow-hidden h-full">
+                <div className="flex items-center justify-between px-2 pb-2">
                   <p className="text-sm text-muted-foreground">Powered by DALL-E 3</p>
                   <Button variant="outline" size="sm" onClick={clearImages} className="gap-2">
                     <Trash2 className="h-4 w-4" />
@@ -272,7 +272,7 @@ export default function AIChat() {
                   </Button>
                 </div>
 
-                <ScrollArea className="flex-1 px-6">
+                <ScrollArea className="flex-1 px-2 h-full">
                   {generatedImages.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">
                       <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -303,7 +303,7 @@ export default function AIChat() {
                   )}
                 </ScrollArea>
 
-                <form onSubmit={generateImage} className="p-4 border-t border-border/50 space-y-3">
+                <form onSubmit={generateImage} className="p-2 border-t border-border/50 space-y-3 mt-auto">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <label className="text-xs text-muted-foreground">Size</label>
