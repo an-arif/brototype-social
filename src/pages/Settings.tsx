@@ -7,24 +7,64 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+import { z } from "zod";
+
+const emailSchema = z.string().email("Invalid email address");
+const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
 
 export default function Settings() {
   const { user } = useAuth();
   const { data: profile } = useProfile(user?.id);
-  const { toast } = useToast();
+  const [newEmail, setNewEmail] = useState("");
+  const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
+  const handleEmailChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      emailSchema.parse(newEmail);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+        return;
+      }
+    }
+
+    if (newEmail === user?.email) {
+      toast.error("This is already your current email");
+      return;
+    }
+
+    setIsChangingEmail(true);
+    const { error } = await supabase.auth.updateUser({ email: newEmail });
+    setIsChangingEmail(false);
+
+    if (error) {
+      toast.error(error.message || "Failed to update email");
+    } else {
+      toast.success("Verification email sent to your new address");
+      setNewEmail("");
+    }
+  };
+
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    try {
+      passwordSchema.parse(newPassword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+        return;
+      }
+    }
+
     if (newPassword !== confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive",
-      });
+      toast.error("Passwords do not match");
       return;
     }
 
@@ -33,16 +73,9 @@ export default function Settings() {
     setIsChangingPassword(false);
 
     if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(error.message || "Failed to change password");
     } else {
-      toast({
-        title: "Success",
-        description: "Password changed successfully",
-      });
+      toast.success("Password changed successfully");
       setNewPassword("");
       setConfirmPassword("");
     }
@@ -59,12 +92,15 @@ export default function Settings() {
         <Card className="glass-card">
           <CardHeader>
             <CardTitle>Account Details</CardTitle>
-            <CardDescription>Your account information</CardDescription>
+            <CardDescription>Your current account information. Use Profile page to edit username and display name.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
               <Label>Email</Label>
               <Input value={user?.email || ""} disabled className="mt-2" />
+              <p className="text-xs text-muted-foreground mt-1">
+                To change email, use the form below
+              </p>
             </div>
             <div>
               <Label>Display Name</Label>
@@ -74,6 +110,32 @@ export default function Settings() {
               <Label>Username</Label>
               <Input value={profile?.username || ""} disabled className="mt-2" />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle>Change Email</CardTitle>
+            <CardDescription>Update your email address (verification required)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleEmailChange} className="space-y-4">
+              <div>
+                <Label htmlFor="new-email">New Email</Label>
+                <Input
+                  id="new-email"
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="Enter new email address"
+                  required
+                  className="mt-2"
+                />
+              </div>
+              <Button type="submit" disabled={isChangingEmail}>
+                {isChangingEmail ? "Sending Verification..." : "Change Email"}
+              </Button>
+            </form>
           </CardContent>
         </Card>
 
@@ -91,9 +153,10 @@ export default function Settings() {
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password"
+                  placeholder="Enter new password (min 6 characters)"
                   required
                   className="mt-2"
+                  minLength={6}
                 />
               </div>
               <div>
@@ -106,6 +169,7 @@ export default function Settings() {
                   placeholder="Confirm new password"
                   required
                   className="mt-2"
+                  minLength={6}
                 />
               </div>
               <Button type="submit" disabled={isChangingPassword}>

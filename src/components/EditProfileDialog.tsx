@@ -9,6 +9,23 @@ import { Loader2, Upload } from "lucide-react";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { z } from "zod";
+
+const profileSchema = z.object({
+  display_name: z.string()
+    .trim()
+    .min(1, "Display name is required")
+    .max(50, "Display name must be less than 50 characters"),
+  username: z.string()
+    .trim()
+    .min(3, "Username must be at least 3 characters")
+    .max(20, "Username must be less than 20 characters")
+    .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
+  bio: z.string()
+    .max(500, "Bio must be less than 500 characters")
+    .optional(),
+  avatar_url: z.string().optional(),
+});
 
 interface EditProfileDialogProps {
   open: boolean;
@@ -74,8 +91,38 @@ export function EditProfileDialog({ open, onOpenChange, userId }: EditProfileDia
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateProfile.mutateAsync({ id: userId, updates: formData });
-    onOpenChange(false);
+
+    // Validate form data
+    try {
+      profileSchema.parse(formData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+        return;
+      }
+    }
+
+    // Check if username is taken by another user
+    if (formData.username !== profile?.username) {
+      const { data: existingUser } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("username", formData.username)
+        .neq("id", userId)
+        .maybeSingle();
+
+      if (existingUser) {
+        toast.error("Username is already taken");
+        return;
+      }
+    }
+
+    try {
+      await updateProfile.mutateAsync({ id: userId, updates: formData });
+      onOpenChange(false);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update profile");
+    }
   };
 
   return (
@@ -128,19 +175,27 @@ export function EditProfileDialog({ open, onOpenChange, userId }: EditProfileDia
               onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
               className="bg-background/50"
               required
+              maxLength={50}
             />
+            <p className="text-xs text-muted-foreground">
+              {formData.display_name.length}/50 characters
+            </p>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
             <Input
               id="username"
-              placeholder="@username"
+              placeholder="username"
               value={formData.username}
-              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
               className="bg-background/50"
               required
+              maxLength={20}
             />
+            <p className="text-xs text-muted-foreground">
+              3-20 characters, letters, numbers, and underscores only
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -151,7 +206,11 @@ export function EditProfileDialog({ open, onOpenChange, userId }: EditProfileDia
               value={formData.bio}
               onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
               className="bg-background/50 min-h-[100px] resize-none"
+              maxLength={500}
             />
+            <p className="text-xs text-muted-foreground">
+              {formData.bio.length}/500 characters
+            </p>
           </div>
 
           <div className="flex gap-3 justify-end">
