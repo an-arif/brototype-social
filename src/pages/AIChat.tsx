@@ -210,7 +210,7 @@ export default function AIChat() {
 
               <TabsContent value="chat" className="flex-1 flex flex-col mt-0 data-[state=active]:flex data-[state=inactive]:hidden overflow-hidden h-full">
                 <div className="flex items-center justify-between px-2 pb-2">
-                  <p className="text-sm text-muted-foreground">Powered by GPT-4o Mini</p>
+                  <p className="text-sm text-muted-foreground">Powered by GPT-5</p>
                   <Button variant="outline" size="sm" onClick={clearChat} className="gap-2">
                     <Trash2 className="h-4 w-4" />
                     Clear
@@ -239,6 +239,17 @@ export default function AIChat() {
                           </div>
                         </div>
                       ))}
+                      {isLoading && messages[messages.length - 1]?.role === "user" && (
+                        <div className="flex justify-start">
+                          <div className="max-w-[85%] rounded-lg p-4 bg-muted">
+                            <div className="flex gap-1 items-center">
+                              <div className="w-2 h-2 rounded-full bg-foreground/60 animate-bounce [animation-delay:-0.3s]"></div>
+                              <div className="w-2 h-2 rounded-full bg-foreground/60 animate-bounce [animation-delay:-0.15s]"></div>
+                              <div className="w-2 h-2 rounded-full bg-foreground/60 animate-bounce"></div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       <div ref={scrollRef} />
                     </div>
                   )}
