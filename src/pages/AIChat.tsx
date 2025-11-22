@@ -106,21 +106,22 @@ export default function AIChat() {
     }
   };
 
-  const downloadImage = async (imageUrl: string, index: number) => {
+  const downloadImage = (imageUrl: string, index: number) => {
     try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = `generated-image-${index + 1}.png`;
+      a.href = imageUrl;
+      a.download = `dall-e-image-${index + 1}-${Date.now()}.png`;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.success("Image downloaded!");
+      toast.success("Download started!");
     } catch (error) {
-      toast.error("Failed to download image");
+      console.error('Download error:', error);
+      // Fallback: open in new tab
+      window.open(imageUrl, '_blank');
+      toast.info("Image opened in new tab - right-click to save");
     }
   };
 
