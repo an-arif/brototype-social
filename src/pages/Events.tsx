@@ -41,7 +41,12 @@ export default function Events() {
   const createEvent = useMutation({
     mutationFn: async () => {
       if (!user) return;
-      await supabase.from("events").insert({ ...eventData, created_by: user.id });
+      const eventToInsert = {
+        ...eventData,
+        event_end_date: eventData.event_end_date || null,
+        created_by: user.id
+      };
+      await supabase.from("events").insert(eventToInsert);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
