@@ -6,8 +6,10 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Lock, Globe, Loader2 } from "lucide-react";
+import { Plus, Lock, Globe, Loader2, Upload, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { useComplaints, useCreateComplaint, useUpvotes } from "@/hooks/useComplaints";
 import { ComplaintCard } from "@/components/ComplaintCard";
 import { Switch } from "@/components/ui/switch";
@@ -23,33 +25,74 @@ export default function Complaints() {
     severity: "medium",
     category: "other",
   });
-  const [attachmentsText, setAttachmentsText] = useState("");
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const { data: publicComplaints, isLoading: loadingPublic } = useComplaints("public");
   const { data: privateComplaints, isLoading: loadingPrivate } = useComplaints("private", user?.id);
   const { data: allUpvotes } = useUpvotes();
   const createComplaint = useCreateComplaint();
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    
+    if (imageFiles.length !== files.length) {
+      toast.error("Only image files are allowed");
+    }
+    
+    setUploadedFiles(prev => [...prev, ...imageFiles]);
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!complaintData.title.trim() || !complaintData.description.trim() || !user) return;
 
-    const attachments = attachmentsText
-      .split(",")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
+    setUploading(true);
+    try {
+      // Upload files to Supabase Storage
+      const attachmentUrls: string[] = [];
+      
+      for (const file of uploadedFiles) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}-${Math.random()}.${fileExt}`;
+        
+        const { error: uploadError, data } = await supabase.storage
+          .from('attachments')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
 
-    await createComplaint.mutateAsync({
-      ...complaintData,
-      user_id: user.id,
-      is_private: isPrivate,
-      attachments,
-    });
+        if (uploadError) throw uploadError;
 
-    setComplaintData({ title: "", description: "", severity: "medium", category: "other" });
-    setAttachmentsText("");
-    setIsPrivate(false);
-    setIsDialogOpen(false);
+        const { data: { publicUrl } } = supabase.storage
+          .from('attachments')
+          .getPublicUrl(fileName);
+        
+        attachmentUrls.push(publicUrl);
+      }
+
+      await createComplaint.mutateAsync({
+        ...complaintData,
+        user_id: user.id,
+        is_private: isPrivate,
+        attachments: attachmentUrls,
+      });
+
+      setComplaintData({ title: "", description: "", severity: "medium", category: "other" });
+      setUploadedFiles([]);
+      setIsPrivate(false);
+      setIsDialogOpen(false);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to upload files");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const openComplaints = publicComplaints?.filter((c) => c.status === "open") || [];
@@ -153,21 +196,50 @@ export default function Complaints() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="attachments">Attachments (optional)</Label>
-                  <Input
-                    id="attachments"
-                    placeholder="Paste file/image URLs, comma-separated"
-                    value={attachmentsText}
-                    onChange={(e) => setAttachmentsText(e.target.value)}
-                    className="bg-background/50"
-                  />
+                  <Label htmlFor="attachments">Upload Photos (optional)</Label>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="attachments"
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleFileChange}
+                        className="bg-background/50 cursor-pointer"
+                      />
+                      <Upload className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    {uploadedFiles.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {uploadedFiles.map((file, index) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={URL.createObjectURL(file)}
+                              alt={file.name}
+                              className="w-full h-24 object-cover rounded-lg border border-border"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => removeFile(index)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                            <p className="text-xs text-muted-foreground truncate mt-1">{file.name}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="flex gap-3 justify-end">
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={createComplaint.isPending}>
-                    {createComplaint.isPending ? "Submitting..." : "Submit Complaint"}
+                  <Button type="submit" disabled={createComplaint.isPending || uploading}>
+                    {createComplaint.isPending || uploading ? "Submitting..." : "Submit Complaint"}
                   </Button>
                 </div>
               </form>
