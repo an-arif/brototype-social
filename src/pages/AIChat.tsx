@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Send, Trash2, Image as ImageIcon, MessageSquare, Download } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Message {
   role: "user" | "assistant";
@@ -235,7 +237,15 @@ export default function AIChat() {
                                 : "bg-muted"
                             }`}
                           >
-                            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                            {message.role === "assistant" ? (
+                              <div className="text-sm prose prose-sm dark:prose-invert max-w-none">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                  {message.content}
+                                </ReactMarkdown>
+                              </div>
+                            ) : (
+                              <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                            )}
                           </div>
                         </div>
                       ))}
