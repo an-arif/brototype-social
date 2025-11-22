@@ -6,11 +6,13 @@ export const useProfile = (userId?: string) => {
   return useQuery({
     queryKey: ["profile", userId],
     queryFn: async () => {
+      if (!userId) return null;
+
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", userId!)
-        .single();
+        .eq("id", userId)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
