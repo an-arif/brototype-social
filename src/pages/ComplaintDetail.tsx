@@ -27,7 +27,7 @@ export default function ComplaintDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("complaints")
-        .select(`id, title, description, status, is_pinned, is_urgent, created_at, user_id, profiles:profiles!complaints_user_id_fkey(username, display_name, avatar_url)`)
+        .select(`id, title, description, status, is_pinned, is_urgent, created_at, user_id, attachments, profiles:profiles!complaints_user_id_fkey(username, display_name, avatar_url)`)
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -117,6 +117,30 @@ export default function ComplaintDetail() {
           <CardContent className="space-y-4">
             <h1 className="text-2xl font-bold">{complaint.title}</h1>
             <p className="text-foreground leading-relaxed whitespace-pre-wrap">{complaint.description}</p>
+            
+            {complaint.attachments && complaint.attachments.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm text-muted-foreground">Attachments</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {complaint.attachments.map((url: string, index: number) => (
+                    <a
+                      key={index}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group relative overflow-hidden rounded-lg border border-border hover:border-primary transition-colors"
+                    >
+                      <img
+                        src={url}
+                        alt={`Attachment ${index + 1}`}
+                        className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-200"
+                      />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             <div className="flex items-center gap-4 pt-4 border-t border-border">
               <Button variant="ghost" size="sm" className="gap-2 hover:text-primary" onClick={handleUpvote}>
                 <ArrowBigUp className={`h-5 w-5 ${isUpvoted ? "fill-primary text-primary" : ""}`} />
