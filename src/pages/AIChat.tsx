@@ -194,9 +194,9 @@ export default function AIChat() {
             <p className="text-sm text-muted-foreground">Chat assistant and image generation</p>
           </CardHeader>
 
-          <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
-            <Tabs defaultValue="chat" className="h-full flex flex-col">
-              <TabsList className="w-full grid grid-cols-2 bg-secondary/50 glass mx-4 mt-4">
+          <CardContent className="flex-1 flex flex-col p-4 overflow-hidden">
+            <Tabs defaultValue="chat" className="flex-1 flex flex-col">
+              <TabsList className="w-full grid grid-cols-2 bg-secondary/50 glass">
                 <TabsTrigger value="chat" className="gap-2">
                   <MessageSquare className="h-4 w-4" />
                   Chat
@@ -207,7 +207,7 @@ export default function AIChat() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="chat" className="flex-1 flex flex-col m-0 overflow-hidden">
+              <TabsContent value="chat" className="flex-1 flex flex-col mt-0 data-[state=active]:flex overflow-hidden">
                 <div className="flex items-center justify-between px-6 pt-4 pb-2">
                   <p className="text-sm text-muted-foreground">Powered by GPT-4o Mini</p>
                   <Button variant="outline" size="sm" onClick={clearChat} className="gap-2">
@@ -263,7 +263,7 @@ export default function AIChat() {
                 </form>
               </TabsContent>
 
-              <TabsContent value="image" className="flex-1 flex flex-col m-0 overflow-hidden">
+              <TabsContent value="image" className="flex-1 flex flex-col mt-0 data-[state=active]:flex overflow-hidden">
                 <div className="flex items-center justify-between px-6 pt-4 pb-2">
                   <p className="text-sm text-muted-foreground">Powered by DALL-E 3</p>
                   <Button variant="outline" size="sm" onClick={clearImages} className="gap-2">
