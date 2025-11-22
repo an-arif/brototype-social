@@ -643,6 +643,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      delete_user_account: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
