@@ -6,12 +6,14 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import authHero from "@/assets/auth-hero.jpg";
-import { Mail, Lock, User, Users } from "lucide-react";
+import { Mail, Lock, User, Users, Monitor } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 export default function Auth() {
   const {
     signIn,
     signUp
   } = useAuth();
+  const isMobile = useIsMobile();
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [signInData, setSignInData] = useState({
@@ -62,6 +64,25 @@ export default function Auth() {
       setIsLoading(false);
     }
   };
+  if (isMobile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-primary/10 via-background to-secondary/10">
+        <div className="max-w-md w-full text-center space-y-6 animate-in">
+          <Monitor className="h-20 w-20 mx-auto text-primary" />
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight">Desktop Only</h1>
+            <p className="text-muted-foreground text-lg">
+              Brototype Connect is designed for desktop and laptop computers.
+            </p>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Please access this platform from a desktop or laptop computer for the best experience.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return <div className="min-h-screen flex">
       {/* Left Side - Form */}
       <div className="flex-1 flex items-center justify-center p-8 lg:p-12">
