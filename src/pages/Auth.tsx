@@ -188,7 +188,7 @@ export default function Auth() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-transparent z-10" />
         <img src={authHero} alt="Brototype Connect - Modern Learning Environment" className="w-full h-full object-cover" />
         <div className="absolute bottom-12 left-12 right-12 z-20 text-white space-y-4">
-          <h2 className="text-4xl font-bold">Connect. Learn. Grow.</h2>
+          <h2 className="text-4xl font-bold text-red-600">Connect. Learn. Grow.</h2>
           <p className="text-lg max-w-lg text-red-700">
             Join thousands of learners and professionals in the Brototype community. 
             Share knowledge, collaborate on projects, and advance your tech career.
