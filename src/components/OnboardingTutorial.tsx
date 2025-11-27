@@ -126,9 +126,9 @@ export function OnboardingTutorial() {
 
   return (
     <>
-      {/* Dark overlay */}
+      {/* Light overlay */}
       <div 
-        className="fixed inset-0 bg-background/90 z-50 animate-in fade-in duration-300"
+        className="fixed inset-0 bg-black/40 z-50 animate-in fade-in duration-300"
         onClick={handleSkip}
       />
       
