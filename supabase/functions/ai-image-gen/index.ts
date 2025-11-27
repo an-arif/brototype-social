@@ -6,34 +6,26 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const API_ENDPOINT = 'https://chatgpt5free.com/wp-json/chatgpt-pro/v1';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { prompt, size = "1024x1024", quality = "standard" } = await req.json();
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    
-    if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY is not configured');
-    }
+    const { prompt } = await req.json();
 
     console.log('Generating image with prompt:', prompt);
 
-    const response = await fetch('https://api.openai.com/v1/images/generations', {
+    const response = await fetch(`${API_ENDPOINT}/image`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'dall-e-3',
         prompt: prompt,
-        n: 1,
-        size: size,
-        quality: quality,
-        response_format: 'url'
+        provider: 'openai'
       }),
     });
 
