@@ -4,12 +4,14 @@ import { usePosts } from "@/hooks/usePosts";
 import { PostCard } from "@/components/PostCard";
 import { CreatePostDialog } from "@/components/CreatePostDialog";
 import { UsersSidebar } from "@/components/UsersSidebar";
+import { OnboardingTutorial } from "@/components/OnboardingTutorial";
 
 export default function Home() {
   const { data: posts, isLoading } = usePosts();
 
   return (
     <MainLayout>
+      <OnboardingTutorial />
       <div className="flex gap-6 max-w-7xl mx-auto">
         <div className="flex-1 max-w-2xl space-y-6">
           <div className="animate-in">
