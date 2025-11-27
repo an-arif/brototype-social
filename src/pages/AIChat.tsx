@@ -70,7 +70,10 @@ export default function AIChat() {
     e.preventDefault();
     if (!imagePrompt.trim()) return;
 
+    const promptToGenerate = imagePrompt;
+    setImagePrompt(""); // Clear immediately to prevent re-submission
     setIsGenerating(true);
+    
     try {
       const IMAGE_GEN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-image-gen`;
       
@@ -80,29 +83,33 @@ export default function AIChat() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          prompt: imagePrompt,
+          prompt: promptToGenerate,
           size: imageSize,
           quality: imageQuality
         }),
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Image generation failed:', errorText);
         throw new Error('Failed to generate image');
       }
 
       const data = await response.json();
+      console.log('Image generation response:', data);
       const imageUrl = data.data?.[0]?.url;
       
       if (imageUrl) {
+        // Use functional update to ensure clean state
         setGeneratedImages(prev => [imageUrl, ...prev]);
         toast.success("Image generated successfully!");
-        setImagePrompt("");
       } else {
         throw new Error('No image URL in response');
       }
     } catch (error: any) {
       console.error('Image generation error:', error);
       toast.error(error.message || "Failed to generate image");
+      setImagePrompt(promptToGenerate); // Restore prompt on error
     } finally {
       setIsGenerating(false);
     }
@@ -132,14 +139,21 @@ export default function AIChat() {
     if (!input.trim()) return;
 
     const userMessage: Message = { role: "user", content: input };
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
     setInput("");
     setIsLoading(true);
+
+    // Use functional state update to ensure we have latest messages
+    setMessages(prev => {
+      const updated = [...prev, userMessage];
+      return updated;
+    });
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
+      
+      // Get the current messages including the user message we just added
+      const currentMessages = [...messages, userMessage];
       
       const response = await fetch(CHAT_URL, {
         method: 'POST',
@@ -147,7 +161,7 @@ export default function AIChat() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: updatedMessages }),
+        body: JSON.stringify({ messages: currentMessages }),
       });
 
       if (!response.ok) {
@@ -155,16 +169,27 @@ export default function AIChat() {
       }
 
       const data = await response.json();
+      console.log('AI Response:', data);
+      
+      if (!data.reply) {
+        throw new Error('No reply in response');
+      }
+
       const assistantMessage: Message = { 
         role: "assistant", 
         content: data.reply 
       };
       
-      const newMessages = [...updatedMessages, assistantMessage];
-      setMessages(newMessages);
-      localStorage.setItem("ai_chat_messages", JSON.stringify(newMessages));
+      // Use functional state update for assistant message
+      setMessages(prev => {
+        const newMessages = [...prev, assistantMessage];
+        localStorage.setItem("ai_chat_messages", JSON.stringify(newMessages));
+        return newMessages;
+      });
+      
       toast.success("Response received!");
     } catch (error: any) {
+      console.error('Send message error:', error);
       toast.error(error.message || "Failed to get AI response");
     } finally {
       setIsLoading(false);
@@ -210,7 +235,7 @@ export default function AIChat() {
                     <div className="space-y-4">
                       {messages.map((message, i) => (
                         <div
-                          key={i}
+                          key={`${i}-${message.role}-${message.content.slice(0, 20)}`}
                           className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                         >
                           <div
@@ -286,12 +311,18 @@ export default function AIChat() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
+                      {isGenerating && (
+                        <div className="relative rounded-lg overflow-hidden border border-border bg-background/50 aspect-square flex items-center justify-center">
+                          <Loader2 className="h-12 w-12 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
                       {generatedImages.map((imageUrl, i) => (
-                        <div key={i} className="relative group rounded-lg overflow-hidden border border-border bg-background/50">
+                        <div key={`${imageUrl.slice(-20)}-${i}`} className="relative group rounded-lg overflow-hidden border border-border bg-background/50">
                           <img 
                             src={imageUrl} 
                             alt={`Generated ${i + 1}`}
                             className="w-full h-auto"
+                            loading="lazy"
                           />
                           <Button
                             variant="secondary"
