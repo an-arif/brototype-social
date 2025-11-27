@@ -160,8 +160,9 @@ export default function AIChat() {
         content: data.reply 
       };
       
-      setMessages([...updatedMessages, assistantMessage]);
-      localStorage.setItem("chatMessages", JSON.stringify([...updatedMessages, assistantMessage]));
+      const newMessages = [...updatedMessages, assistantMessage];
+      setMessages(newMessages);
+      localStorage.setItem("ai_chat_messages", JSON.stringify(newMessages));
       toast.success("Response received!");
     } catch (error: any) {
       toast.error(error.message || "Failed to get AI response");
