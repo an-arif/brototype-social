@@ -139,21 +139,16 @@ export default function AIChat() {
     if (!input.trim()) return;
 
     const userMessage: Message = { role: "user", content: input };
+    const updatedMessages = [...messages, userMessage];
+
+    // Optimistically show user message
+    setMessages(updatedMessages);
     setInput("");
     setIsLoading(true);
-
-    // Use functional state update to ensure we have latest messages
-    setMessages(prev => {
-      const updated = [...prev, userMessage];
-      return updated;
-    });
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
-      
-      // Get the current messages including the user message we just added
-      const currentMessages = [...messages, userMessage];
       
       const response = await fetch(CHAT_URL, {
         method: 'POST',
@@ -161,7 +156,7 @@ export default function AIChat() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: currentMessages }),
+        body: JSON.stringify({ messages: updatedMessages }),
       });
 
       if (!response.ok) {
@@ -169,24 +164,25 @@ export default function AIChat() {
       }
 
       const data = await response.json();
-      console.log('AI Response:', data);
-      
-      if (!data.reply) {
+      console.log('AI chat response:', data);
+
+      const replyText: string =
+        data.reply ||
+        data.choices?.[0]?.message?.content ||
+        '';
+
+      if (!replyText) {
         throw new Error('No reply in response');
       }
 
       const assistantMessage: Message = { 
         role: "assistant", 
-        content: data.reply 
+        content: replyText,
       };
       
-      // Use functional state update for assistant message
-      setMessages(prev => {
-        const newMessages = [...prev, assistantMessage];
-        localStorage.setItem("ai_chat_messages", JSON.stringify(newMessages));
-        return newMessages;
-      });
-      
+      const finalMessages = [...updatedMessages, assistantMessage];
+      setMessages(finalMessages);
+      localStorage.setItem("ai_chat_messages", JSON.stringify(finalMessages));
       toast.success("Response received!");
     } catch (error: any) {
       console.error('Send message error:', error);
