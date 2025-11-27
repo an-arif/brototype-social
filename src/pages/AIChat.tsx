@@ -150,39 +150,19 @@ export default function AIChat() {
         body: JSON.stringify({ messages: updatedMessages }),
       });
 
-      if (!response.ok || !response.body) {
+      if (!response.ok) {
         throw new Error('Failed to get response from AI');
       }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let assistantContent = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n').filter(line => line.trim() !== '');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const jsonStr = line.slice(6);
-            if (jsonStr === '[DONE]') break;
-            
-            try {
-              const parsed = JSON.parse(jsonStr);
-              const content = parsed.choices?.[0]?.delta?.content;
-              if (content) {
-                assistantContent += content;
-                setMessages([...updatedMessages, { role: "assistant", content: assistantContent }]);
-              }
-            } catch (e) {
-              // Skip invalid JSON
-            }
-          }
-        }
-      }
+      const data = await response.json();
+      const assistantMessage: Message = { 
+        role: "assistant", 
+        content: data.reply 
+      };
+      
+      setMessages([...updatedMessages, assistantMessage]);
+      localStorage.setItem("chatMessages", JSON.stringify([...updatedMessages, assistantMessage]));
+      toast.success("Response received!");
     } catch (error: any) {
       toast.error(error.message || "Failed to get AI response");
     } finally {
