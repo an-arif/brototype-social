@@ -75,6 +75,7 @@ export function OnboardingTutorial() {
 
   useEffect(() => {
     const hasSeenTutorial = Cookies.get("brototype_tutorial_completed");
+    console.log("Tutorial cookie check:", hasSeenTutorial);
     if (!hasSeenTutorial) {
       // Small delay to ensure DOM is ready
       setTimeout(() => setIsVisible(true), 500);
@@ -115,7 +116,8 @@ export function OnboardingTutorial() {
   };
 
   const completeTutorial = () => {
-    Cookies.set("brototype_tutorial_completed", "true", { expires: 365 });
+    Cookies.set("brototype_tutorial_completed", "true", { expires: 365, sameSite: 'strict' });
+    console.log("Tutorial completed, cookie set:", Cookies.get("brototype_tutorial_completed"));
     setIsVisible(false);
   };
 
