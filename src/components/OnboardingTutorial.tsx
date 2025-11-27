@@ -159,11 +159,10 @@ export function OnboardingTutorial() {
             : currentStepData.position === "left"
             ? `${spotlightPosition.left - 420}px`
             : `${spotlightPosition.left}px`,
-          maxWidth: '400px',
-          filter: 'none'
+          maxWidth: '400px'
         }}
       >
-        <div className="bg-background border-2 border-primary/50 p-6 rounded-xl shadow-2xl backdrop-blur-none">
+        <div className="glass-card border-2 border-primary/50 p-6 rounded-xl shadow-2xl">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="flex gap-1">
