@@ -8,6 +8,37 @@ const corsHeaders = {
 
 const API_ENDPOINT = 'https://chatgpt5free.com/wp-json/chatgpt-pro/v1';
 
+// Helper function to convert URL to base64
+async function imageUrlToBase64(imageUrl: string): Promise<string> {
+  try {
+    console.log('Fetching image to convert to base64...');
+    const response = await fetch(imageUrl);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.status}`);
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    
+    // Convert to base64
+    let binary = '';
+    for (let i = 0; i < uint8Array.length; i++) {
+      binary += String.fromCharCode(uint8Array[i]);
+    }
+    const base64 = btoa(binary);
+    
+    // Determine content type from response or default to png
+    const contentType = response.headers.get('content-type') || 'image/png';
+    
+    console.log('Image converted to base64 successfully');
+    return `data:${contentType};base64,${base64}`;
+  } catch (error) {
+    console.error('Error converting image to base64:', error);
+    throw error;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -36,9 +67,27 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('Image generated successfully');
+    console.log('Image generated successfully, response structure:', Object.keys(data));
     
-    return new Response(JSON.stringify(data), {
+    // Get the image URL from the response
+    const imageUrl = data.data?.[0]?.url || data.url || data.image_url;
+    
+    if (!imageUrl) {
+      console.error('No image URL in response:', JSON.stringify(data));
+      throw new Error('No image URL in response');
+    }
+    
+    console.log('Image URL received, converting to base64...');
+    
+    // Convert the image to base64 so it persists in localStorage
+    const base64Image = await imageUrlToBase64(imageUrl);
+    
+    // Return in the same format but with base64 data URL
+    return new Response(JSON.stringify({
+      data: [{
+        url: base64Image
+      }]
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
