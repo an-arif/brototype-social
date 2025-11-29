@@ -119,19 +119,21 @@ export default function AIChat() {
     try {
       const a = document.createElement('a');
       a.href = imageUrl;
-      a.download = `dall-e-image-${index + 1}-${Date.now()}.png`;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
+      a.download = `ai-image-${index + 1}-${Date.now()}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       toast.success("Download started!");
     } catch (error) {
       console.error('Download error:', error);
-      // Fallback: open in new tab
-      window.open(imageUrl, '_blank');
-      toast.info("Image opened in new tab - right-click to save");
+      toast.error("Failed to download image");
     }
+  };
+
+  // Remove expired/broken images from storage
+  const removeImage = (index: number) => {
+    setGeneratedImages(prev => prev.filter((_, i) => i !== index));
+    toast.success("Image removed");
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -313,22 +315,46 @@ export default function AIChat() {
                         </div>
                       )}
                       {generatedImages.map((imageUrl, i) => (
-                        <div key={`${imageUrl.slice(-20)}-${i}`} className="relative group rounded-lg overflow-hidden border border-border bg-background/50">
+                        <div key={`${i}-${imageUrl.slice(0, 50)}`} className="relative group rounded-lg overflow-hidden border border-border bg-background/50">
                           <img 
                             src={imageUrl} 
                             alt={`Generated ${i + 1}`}
                             className="w-full h-auto"
                             loading="lazy"
+                            onError={(e) => {
+                              // Mark the image as broken
+                              (e.target as HTMLImageElement).style.display = 'none';
+                              (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                            }}
                           />
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity gap-2"
-                            onClick={() => downloadImage(imageUrl, i)}
-                          >
-                            <Download className="h-4 w-4" />
-                            Download
-                          </Button>
+                          <div className="hidden absolute inset-0 flex flex-col items-center justify-center bg-destructive/10 text-destructive p-4">
+                            <p className="text-sm text-center mb-2">Image expired or failed to load</p>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => removeImage(i)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Remove
+                            </Button>
+                          </div>
+                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="gap-2"
+                              onClick={() => downloadImage(imageUrl, i)}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeImage(i)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
