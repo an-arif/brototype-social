@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Send, Trash2, Image as ImageIcon, MessageSquare, Download } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,8 +26,6 @@ export default function AIChat() {
   const [imagePrompt, setImagePrompt] = useState("");
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [imageSize, setImageSize] = useState<"1024x1024" | "1792x1024" | "1024x1792">("1024x1024");
-  const [imageQuality, setImageQuality] = useState<"standard" | "hd">("standard");
 
   useEffect(() => {
     const stored = localStorage.getItem("ai_chat_messages");
@@ -83,9 +80,7 @@ export default function AIChat() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          prompt: promptToGenerate,
-          size: imageSize,
-          quality: imageQuality
+          prompt: promptToGenerate
         }),
       });
 
@@ -301,7 +296,7 @@ export default function AIChat() {
                 </div>
 
                 <ScrollArea className="flex-1 px-2 h-full">
-                  {generatedImages.length === 0 ? (
+                  {generatedImages.length === 0 && !isGenerating ? (
                     <div className="text-center py-12 text-muted-foreground">
                       <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>Generate images with AI</p>
@@ -322,7 +317,6 @@ export default function AIChat() {
                             className="w-full h-auto"
                             loading="lazy"
                             onError={(e) => {
-                              // Mark the image as broken
                               (e.target as HTMLImageElement).style.display = 'none';
                               (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
                             }}
@@ -361,34 +355,7 @@ export default function AIChat() {
                   )}
                 </ScrollArea>
 
-                <form onSubmit={generateImage} className="p-2 border-t border-border/50 space-y-3 mt-auto">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <label className="text-xs text-muted-foreground">Size</label>
-                      <Select value={imageSize} onValueChange={(value: any) => setImageSize(value)}>
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1024x1024">Square (1024x1024)</SelectItem>
-                          <SelectItem value="1792x1024">Landscape (1792x1024)</SelectItem>
-                          <SelectItem value="1024x1792">Portrait (1024x1792)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs text-muted-foreground">Quality</label>
-                      <Select value={imageQuality} onValueChange={(value: any) => setImageQuality(value)}>
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="standard">Standard</SelectItem>
-                          <SelectItem value="hd">HD</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                <form onSubmit={generateImage} className="p-2 border-t border-border/50 mt-auto">
                   <div className="flex gap-2">
                     <Input
                       value={imagePrompt}
