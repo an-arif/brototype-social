@@ -69,12 +69,19 @@ serve(async (req) => {
     const data = await response.json();
     console.log('Image generated successfully, response structure:', Object.keys(data));
     
+    // Check if the API returned an error (content policy violation, etc.)
+    if (data.error) {
+      const errorMessage = data.error.message || data.error.type || 'Image generation failed';
+      console.error('API returned error:', errorMessage);
+      throw new Error(errorMessage);
+    }
+    
     // Get the image URL from the response
     const imageUrl = data.data?.[0]?.url || data.url || data.image_url;
     
     if (!imageUrl) {
       console.error('No image URL in response:', JSON.stringify(data));
-      throw new Error('No image URL in response');
+      throw new Error('Failed to generate image. Please try a different prompt.');
     }
     
     console.log('Image URL received, converting to base64...');
