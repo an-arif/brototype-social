@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.ai-image-gen]
 verify_jwt = false
+
+[functions.geo-check]
+verify_jwt = false
