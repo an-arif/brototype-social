@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useGeoCheck } from "@/hooks/useGeoCheck";
+import { ShieldX, Loader2 } from "lucide-react";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Complaints from "./pages/Complaints";
@@ -29,6 +31,7 @@ const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, signOut } = useAuth();
+  const { isChecking: geoChecking, isBlocked: geoBlocked } = useGeoCheck();
 
   const { data: accountStatusData, isLoading: statusLoading } = useQuery({
     queryKey: ["accountStatus", user?.id],
@@ -61,10 +64,34 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     }
   }, [accountStatusData, user, signOut]);
 
-  if (loading || statusLoading) {
+  // Show loading while checking geo or auth
+  if (loading || statusLoading || geoChecking) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-lg">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-12 w-12 mx-auto text-primary animate-spin" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show blocked message for non-Indian users
+  if (geoBlocked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-destructive/10 via-background to-secondary/10">
+        <div className="max-w-md w-full text-center space-y-6 animate-in">
+          <ShieldX className="h-20 w-20 mx-auto text-destructive" />
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight">Access Restricted</h1>
+            <p className="text-muted-foreground text-lg">
+              Brototype Connect is only available for users in India.
+            </p>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            If you believe this is an error, please contact support.
+          </p>
+        </div>
       </div>
     );
   }
