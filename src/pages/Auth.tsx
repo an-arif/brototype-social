@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,14 +8,14 @@ import { toast } from "sonner";
 import authHero from "@/assets/auth-hero.jpg";
 import { Mail, Lock, User, Users, Monitor, ShieldX, Loader2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useGeoCheck } from "@/hooks/useGeoCheck";
 
 export default function Auth() {
   const { signIn, signUp } = useAuth();
   const isMobile = useIsMobile();
+  const { isChecking: geoChecking, isBlocked: geoBlocked } = useGeoCheck();
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-  const [geoChecking, setGeoChecking] = useState(true);
-  const [geoBlocked, setGeoBlocked] = useState(false);
   const [signInData, setSignInData] = useState({
     email: "",
     password: ""
@@ -26,31 +26,6 @@ export default function Auth() {
     username: "",
     displayName: ""
   });
-
-  // Check geo-location on page load
-  useEffect(() => {
-    const checkGeoLocation = async () => {
-      try {
-        const response = await supabase.functions.invoke('geo-check');
-        
-        if (response.error) {
-          console.log('Geo-check error, allowing user (fail-open):', response.error);
-          setGeoBlocked(false);
-        } else {
-          const { allowed, country, reason } = response.data;
-          console.log('Geo-check result:', { allowed, country, reason });
-          setGeoBlocked(!allowed);
-        }
-      } catch (error) {
-        console.log('Geo-check failed, allowing user (fail-open):', error);
-        setGeoBlocked(false);
-      } finally {
-        setGeoChecking(false);
-      }
-    };
-
-    checkGeoLocation();
-  }, []);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
